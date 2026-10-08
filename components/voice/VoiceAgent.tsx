@@ -147,25 +147,37 @@ export const VoiceAgent: React.FC = () => {
         }
       });
 
-      // Handle Live Transcription
+      // Handle Live Transcription with incremental segment update & deduplication
       room.on(
         RoomEvent.TranscriptionReceived,
         (segments: TranscriptionSegment[], participant?: Participant) => {
-          for (const seg of segments) {
-            if (!seg.final && !seg.text) continue;
-            const isLocal = participant?.isLocal ?? false;
-            const sender = isLocal ? 'user' : 'agent';
+          setTranscripts((prev) => {
+            const updated = [...prev];
+            for (const seg of segments) {
+              if (!seg.text || !seg.text.trim()) continue;
+              const isLocal = participant?.isLocal ?? false;
+              const sender: 'user' | 'agent' = isLocal ? 'user' : 'agent';
+              const segId = seg.id || `seg-${sender}-${Date.now()}`;
 
-            setTranscripts((prev) => [
-              ...prev,
-              {
-                id: seg.id || `tr-${Date.now()}-${Math.random()}`,
-                sender,
-                text: seg.text,
-                timestamp: Date.now(),
-              },
-            ]);
-          }
+              const existingIdx = updated.findIndex((item) => item.id === segId);
+              if (existingIdx >= 0) {
+                // Update in-place to avoid duplicate bubble entries during streaming
+                updated[existingIdx] = {
+                  ...updated[existingIdx],
+                  text: seg.text,
+                };
+              } else {
+                // Append new segment
+                updated.push({
+                  id: segId,
+                  sender,
+                  text: seg.text,
+                  timestamp: Date.now(),
+                });
+              }
+            }
+            return updated;
+          });
         }
       );
 
