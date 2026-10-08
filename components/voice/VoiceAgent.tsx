@@ -12,6 +12,8 @@ import {
   FileText,
   Clock,
   RotateCcw,
+  Globe,
+  AudioLines,
 } from 'lucide-react';
 import { Room, RoomEvent, Track, Participant, TranscriptionSegment } from 'livekit-client';
 import {
@@ -20,7 +22,21 @@ import {
   SUPPORTED_VOICE_MODELS,
 } from '@/lib/callmissed/voice';
 import { VoiceAgentState, TranscriptTurn } from '@/types/callmissed';
-import { SelectDropdown } from '@/components/ui/select-dropdown';
+import { SelectDropdown, SelectOption } from '@/components/ui/select-dropdown';
+import { Button } from '@/components/ui/button';
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from '@/components/ui/drawer';
+import { Moonshot } from '@/components/ui/svgs/modelIcons';
+import { Sarvam } from '@/components/ui/svgs/sarvam';
+import { Openai } from '@/components/ui/svgs/openai';
 
 interface LiveTranscriptItem {
   id: string;
@@ -37,6 +53,13 @@ const midGray = '#6b6b6b';
 const inkBlack = '#000000';
 const coral = '#ff5c3c';
 
+function getVoiceModelLogo(id: string) {
+  if (id.includes('kimi')) return <Moonshot />;
+  if (id.includes('sarvam')) return <Sarvam />;
+  if (id.includes('gpt')) return <Openai />;
+  return <AudioLines className="w-4 h-4 text-[#6b6b6b]" />;
+}
+
 export const VoiceAgent: React.FC = () => {
   const [state, setState] = useState<VoiceAgentState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,6 +69,7 @@ export const VoiceAgent: React.FC = () => {
   const [userSpeaking, setUserSpeaking] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
+  // Configuration options
   const [selectedVoice, setSelectedVoice] = useState('shubh');
   const [selectedLanguage, setSelectedLanguage] = useState('en-IN');
   const [selectedModel, setSelectedModel] = useState('kimi-k2.5');
@@ -54,6 +78,13 @@ export const VoiceAgent: React.FC = () => {
     'You are a helpful, conversational AI assistant. Keep responses natural, brief, and concise.'
   );
   const [showSettings, setShowSettings] = useState(false);
+
+  // Temporary drawer state
+  const [tempVoice, setTempVoice] = useState(selectedVoice);
+  const [tempLang, setTempLang] = useState(selectedLanguage);
+  const [tempModel, setTempModel] = useState(selectedModel);
+  const [tempGreeting, setTempGreeting] = useState(greeting);
+  const [tempPrompt, setTempPrompt] = useState(systemPrompt);
 
   const [transcripts, setTranscripts] = useState<LiveTranscriptItem[]>([]);
   const [postCallTurns, setPostCallTurns] = useState<TranscriptTurn[] | null>(null);
@@ -66,6 +97,24 @@ export const VoiceAgent: React.FC = () => {
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcripts]);
+
+  const voiceOptions: SelectOption[] = SUPPORTED_VOICES.map((v) => ({
+    value: v.id,
+    label: `${v.name} (${v.lang})`,
+    logo: <AudioLines className="w-3.5 h-3.5 text-[#ff5c3c]" />,
+  }));
+
+  const languageOptions: SelectOption[] = SUPPORTED_LANGUAGES.map((l) => ({
+    value: l.code,
+    label: l.name,
+    logo: <Globe className="w-3.5 h-3.5 text-[#4160ff]" />,
+  }));
+
+  const modelOptions: SelectOption[] = SUPPORTED_VOICE_MODELS.map((m) => ({
+    value: m.id,
+    label: m.name,
+    logo: getVoiceModelLogo(m.id),
+  }));
 
   const cleanupCall = useCallback(() => {
     if (timerIntervalRef.current) {
@@ -218,10 +267,10 @@ export const VoiceAgent: React.FC = () => {
   };
 
   return (
-    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#ffffff', padding: '40px 24px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white text-[#000000] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header - Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 sm:mb-8 gap-4">
           <div>
             <span
               style={{
@@ -244,44 +293,122 @@ export const VoiceAgent: React.FC = () => {
             </span>
             <h1
               style={{
-                fontSize: '32px',
+                fontSize: '28px',
                 fontWeight: 700,
-                lineHeight: 1.1,
+                lineHeight: 1.15,
                 letterSpacing: '-0.64px',
                 color: inkBlack,
                 marginBottom: '8px',
               }}
+              className="sm:text-[32px]"
             >
               Voice Agent
             </h1>
-            <p style={{ fontSize: '14px', lineHeight: 1.5, letterSpacing: '-0.14px', color: midGray }}>
+            <p className="text-sm text-[#6b6b6b]">
               Real-time WebRTC conversational voice interaction (STT → LLM → TTS).
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="flex items-center gap-2.5">
             {!isCallActive && (
-              <button
-                onClick={() => setShowSettings(!showSettings)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  borderRadius: '8px',
-                  border: `1px solid ${showSettings ? inkBlack : silver}`,
-                  background: showSettings ? cream : '#ffffff',
-                  padding: '7px 14px',
-                  fontSize: '13px',
-                  letterSpacing: '-0.01em',
-                  color: showSettings ? inkBlack : midGray,
-                  fontWeight: showSettings ? 700 : 400,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <Sliders style={{ width: '14px', height: '14px' }} />
-                Configuration
-              </button>
+              <Drawer open={showSettings} onOpenChange={setShowSettings}>
+                <DrawerTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1.5"
+                    onClick={() => {
+                      setTempVoice(selectedVoice);
+                      setTempLang(selectedLanguage);
+                      setTempModel(selectedModel);
+                      setTempGreeting(greeting);
+                      setTempPrompt(systemPrompt);
+                    }}
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-[#6b6b6b]" />
+                    <span>Configuration</span>
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent side="right">
+                  <DrawerHeader>
+                    <DrawerTitle>Voice Agent Settings</DrawerTitle>
+                    <DrawerDescription>
+                      Configure voice synthesis, language, model routing, and initial greeting.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="p-6 flex-1 flex flex-col gap-4 overflow-y-auto">
+                    <SelectDropdown
+                      label="Voice Persona"
+                      value={tempVoice}
+                      onChange={setTempVoice}
+                      options={voiceOptions}
+                      triggerClassName="w-full"
+                    />
+
+                    <SelectDropdown
+                      label="Spoken Language"
+                      value={tempLang}
+                      onChange={setTempLang}
+                      options={languageOptions}
+                      triggerClassName="w-full"
+                    />
+
+                    <SelectDropdown
+                      label="LLM Brain Model"
+                      value={tempModel}
+                      onChange={setTempModel}
+                      options={modelOptions}
+                      triggerClassName="w-full"
+                    />
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6b6b6b] mb-2">
+                        Initial Greeting
+                      </label>
+                      <input
+                        type="text"
+                        value={tempGreeting}
+                        onChange={(e) => setTempGreeting(e.target.value)}
+                        placeholder="e.g. Hello! How can I assist you today?"
+                        className="w-full rounded-lg border border-[#c4c4c4] bg-[#ffffff] p-2.5 text-sm text-[#000000] outline-none focus:border-[#000000]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#6b6b6b] mb-2">
+                        System Instructions
+                      </label>
+                      <textarea
+                        value={tempPrompt}
+                        onChange={(e) => setTempPrompt(e.target.value)}
+                        rows={4}
+                        placeholder="e.g. You are a helpful assistant. Keep responses natural, brief, and concise."
+                        className="w-full rounded-lg border border-[#c4c4c4] bg-[#ffffff] p-2.5 text-sm text-[#000000] outline-none focus:border-[#000000] resize-none"
+                      />
+                    </div>
+                  </div>
+                  <DrawerFooter>
+                    <DrawerClose asChild>
+                      <Button variant="outline" size="sm">
+                        Cancel
+                      </Button>
+                    </DrawerClose>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedVoice(tempVoice);
+                        setSelectedLanguage(tempLang);
+                        setSelectedModel(tempModel);
+                        setGreeting(tempGreeting);
+                        setSystemPrompt(tempPrompt);
+                        setShowSettings(false);
+                      }}
+                    >
+                      Save Settings
+                    </Button>
+                  </DrawerFooter>
+                </DrawerContent>
+              </Drawer>
             )}
 
             {isCallActive && (
@@ -306,114 +433,15 @@ export const VoiceAgent: React.FC = () => {
           </div>
         </div>
 
-        {/* Configuration Panel */}
-        {showSettings && !isCallActive && (
-          <div
-            style={{
-              marginBottom: '28px',
-              borderRadius: '20px',
-              border: `1px solid ${silver}`,
-              background: cream,
-              padding: '20px',
-              boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: `1px solid ${silver}`,
-                paddingBottom: '12px',
-                marginBottom: '16px',
-              }}
-            >
-              <h3
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '11px',
-                  letterSpacing: '0.143em',
-                  textTransform: 'uppercase',
-                  color: inkBlack,
-                  fontWeight: 700,
-                }}
-              >
-                <Sliders style={{ width: '12px', height: '12px' }} />
-                Agent Settings
-              </h3>
-              <span style={{ fontSize: '11px', color: midGray, letterSpacing: '-0.01em' }}>Server-side session parameters</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '14px' }}>
-              <SelectDropdown
-                label="Voice"
-                value={selectedVoice}
-                onChange={setSelectedVoice}
-                options={SUPPORTED_VOICES.map((v) => ({ value: v.id, label: `${v.name} (${v.lang})` }))}
-              />
-              <SelectDropdown
-                label="Language"
-                value={selectedLanguage}
-                onChange={setSelectedLanguage}
-                options={SUPPORTED_LANGUAGES.map((l) => ({ value: l.code, label: l.name }))}
-              />
-              <SelectDropdown
-                label="Model"
-                value={selectedModel}
-                onChange={setSelectedModel}
-                options={SUPPORTED_VOICE_MODELS.map((m) => ({ value: m.id, label: m.name }))}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              {[
-                { label: 'Greeting', value: greeting, onChange: setGreeting, placeholder: 'e.g. Hello! How can I assist you today?' },
-                { label: 'System Instructions', value: systemPrompt, onChange: setSystemPrompt, placeholder: 'e.g. You are a helpful assistant...' },
-              ].map(({ label, value, onChange, placeholder }) => (
-                <div key={label}>
-                  <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
-                    {label}
-                  </label>
-                  <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    style={{
-                      width: '100%',
-                      borderRadius: '8px',
-                      border: `1px solid ${silver}`,
-                      background: '#ffffff',
-                      padding: '7px 10px',
-                      fontSize: '13px',
-                      letterSpacing: '-0.01em',
-                      color: inkBlack,
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Main Experience */}
-        <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: '20px' }} className="voice-grid">
+        {/* Main Experience - Stacks on mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
           {/* Left: Orb + Controls */}
           <div
+            className="lg:col-span-5 flex flex-col items-center justify-between p-6 sm:p-8 min-h-[420px]"
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               borderRadius: '20px',
               border: `1px solid ${silver}`,
               background: cream,
-              padding: '32px 24px',
-              minHeight: '420px',
               boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
             }}
           >
@@ -448,14 +476,14 @@ export const VoiceAgent: React.FC = () => {
               />
               {state === 'idle' && 'Ready'}
               {state === 'connecting' && 'Connecting...'}
-              {state === 'listening' && (userSpeaking ? 'Listening...' : 'Waiting...')}
+              {state === 'listening' && (userSpeaking ? 'Listening...' : 'Waiting for voice...')}
               {state === 'speaking' && 'Agent speaking'}
               {state === 'processing' && 'Processing...'}
               {state === 'ended' && 'Call ended'}
               {state === 'error' && 'Error'}
             </div>
 
-            {/* Orb */}
+            {/* Central Orb */}
             <div
               style={{
                 width: '120px',
@@ -489,7 +517,7 @@ export const VoiceAgent: React.FC = () => {
                 lineHeight: 1.5,
                 letterSpacing: '-0.01em',
                 color: midGray,
-                maxWidth: '260px',
+                maxWidth: '280px',
                 marginBottom: '20px',
               }}
             >
@@ -502,7 +530,7 @@ export const VoiceAgent: React.FC = () => {
             </p>
 
             {/* Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="flex items-center gap-2.5 w-full justify-center">
               {!isCallActive ? (
                 <button
                   onClick={startVoiceCall}
@@ -522,6 +550,7 @@ export const VoiceAgent: React.FC = () => {
                     transition: 'all 0.15s',
                     boxShadow: 'rgba(0, 0, 0, 0.02) 0px 2px 0px 0px',
                   }}
+                  className="hover:bg-[#e54e30]"
                 >
                   <Mic style={{ width: '15px', height: '15px' }} />
                   Start Conversation
@@ -565,6 +594,7 @@ export const VoiceAgent: React.FC = () => {
                       cursor: 'pointer',
                       transition: 'all 0.15s',
                     }}
+                    className="hover:bg-neutral-800"
                   >
                     <PhoneOff style={{ width: '14px', height: '14px' }} />
                     End
@@ -599,14 +629,11 @@ export const VoiceAgent: React.FC = () => {
 
           {/* Right: Transcript */}
           <div
+            className="lg:col-span-7 flex flex-col p-5 min-h-[420px]"
             style={{
-              display: 'flex',
-              flexDirection: 'column',
               borderRadius: '20px',
               border: `1px solid ${silver}`,
               background: '#ffffff',
-              padding: '20px',
-              minHeight: '420px',
               boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
             }}
           >
@@ -806,18 +833,6 @@ export const VoiceAgent: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        @media (max-width: 1024px) {
-          .voice-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };

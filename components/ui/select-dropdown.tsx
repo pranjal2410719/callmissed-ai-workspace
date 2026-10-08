@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { ChevronDownIcon, CheckIcon } from 'lucide-react';
+import { Button } from './button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,6 +16,7 @@ import {
 export interface SelectOption {
   value: string;
   label: string;
+  logo?: React.ReactNode;
   group?: string;
 }
 
@@ -23,31 +25,33 @@ interface SelectDropdownProps {
   onChange: (value: string) => void;
   options: SelectOption[];
   label?: string;
-  /** Optional suffix to append inside the trigger after the selected label */
-  triggerSuffix?: string;
-  style?: React.CSSProperties;
+  placeholder?: string;
+  className?: string;
+  triggerClassName?: string;
   triggerStyle?: React.CSSProperties;
+  style?: React.CSSProperties;
   disabled?: boolean;
 }
 
 /**
- * A styled select-replacement built on Radix DropdownMenu.
- * Matches the Pietrastudio design system: cream hover, warm shadows,
- * coral checkmark for the selected item, 12px content radius.
+ * Modern model/option select dropdown matching @reui/c-dropdown-menu-18 pattern.
+ * Supports icons/logos, category groups, clean outline button trigger with ChevronDownIcon,
+ * and coral check indicator for selected items. Fully mobile responsive.
  */
 export const SelectDropdown: React.FC<SelectDropdownProps> = ({
   value,
   onChange,
   options,
   label,
-  triggerSuffix,
-  style,
+  placeholder = 'Select...',
+  className = '',
+  triggerClassName = '',
   triggerStyle,
+  style,
   disabled = false,
 }) => {
   const selectedOption = options.find((o) => o.value === value);
 
-  // Group options if any have a `group` field
   const hasGroups = options.some((o) => o.group);
   const groups: Record<string, SelectOption[]> = {};
   if (hasGroups) {
@@ -58,17 +62,12 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
     }
   }
 
-  const triggerLabel = selectedOption
-    ? triggerSuffix
-      ? `${selectedOption.label} ${triggerSuffix}`
-      : selectedOption.label
-    : 'Select...';
-
   return (
-    <div style={style}>
+    <div className={`w-full sm:w-auto ${className}`} style={style}>
       {label && (
-        <div
+        <label
           style={{
+            display: 'block',
             fontSize: '11px',
             letterSpacing: '0.143em',
             textTransform: 'uppercase',
@@ -78,80 +77,116 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
           }}
         >
           {label}
-        </div>
+        </label>
       )}
+
       <DropdownMenu>
         <DropdownMenuTrigger
           disabled={disabled}
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              className={`w-full sm:w-auto min-w-[140px] justify-between ${triggerClassName}`}
+              style={{
+                background: '#ffffff',
+                border: '1px solid #c4c4c4',
+                color: '#000000',
+                fontSize: '13px',
+                fontWeight: 500,
+                letterSpacing: '-0.01em',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                ...triggerStyle,
+              }}
+            >
+              <span className="flex items-center gap-2 truncate">
+                {selectedOption?.logo && (
+                  <span className="shrink-0">{selectedOption.logo}</span>
+                )}
+                <span className="truncate">{selectedOption?.label || placeholder}</span>
+              </span>
+              <ChevronDownIcon
+                className="ml-2 h-3.5 w-3.5 text-[#6b6b6b] shrink-0"
+                aria-hidden="true"
+              />
+            </Button>
+          }
+        />
+
+        <DropdownMenuContent
+          align="start"
+          className="w-56 max-h-72 overflow-y-auto"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            borderRadius: '8px',
-            border: '1px solid #c4c4c4',
+            minWidth: '200px',
             background: '#ffffff',
-            padding: '7px 10px',
-            fontSize: '13px',
-            letterSpacing: '-0.01em',
-            color: '#000000',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.5 : 1,
-            outline: 'none',
-            width: '100%',
-            minWidth: '0',
-            textAlign: 'left',
-            transition: 'border-color 0.15s, background 0.15s',
-            ...triggerStyle,
-          }}
-          onMouseOver={(e) => {
-            if (!disabled) (e.currentTarget as HTMLElement).style.borderColor = '#000000';
-          }}
-          onMouseOut={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = '#c4c4c4';
-          }}
-          onFocus={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = '#000000';
-          }}
-          onBlur={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = '#c4c4c4';
+            border: '1px solid #c4c4c4',
+            borderRadius: '12px',
+            padding: '4px',
+            boxShadow:
+              'rgba(239, 227, 225, 0.4) 5px 5px 24px 0px, rgba(133, 136, 140, 0.15) 0px 0px 30px 0px',
+            zIndex: 60,
           }}
         >
-          <span
-            style={{
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              flex: 1,
-            }}
-          >
-            {triggerLabel}
-          </span>
-          <ChevronDownIcon
-            style={{ width: '14px', height: '14px', color: '#6b6b6b', flexShrink: 0 }}
-          />
-        </DropdownMenuTrigger>
+          {label && (
+            <DropdownMenuLabel
+              style={{
+                fontSize: '11px',
+                letterSpacing: '0.143em',
+                textTransform: 'uppercase',
+                color: '#6b6b6b',
+                padding: '6px 10px',
+                fontWeight: 700,
+              }}
+            >
+              {label}
+            </DropdownMenuLabel>
+          )}
 
-        <DropdownMenuContent align="start" style={{ minWidth: '220px', maxHeight: '320px', overflowY: 'auto' }}>
           {hasGroups ? (
             Object.entries(groups).map(([groupName, groupOptions], gIdx) => (
               <React.Fragment key={groupName || gIdx}>
                 {gIdx > 0 && <DropdownMenuSeparator />}
-                {groupName && <DropdownMenuLabel>{groupName}</DropdownMenuLabel>}
+                {groupName && (
+                  <DropdownMenuLabel
+                    style={{
+                      fontSize: '11px',
+                      letterSpacing: '0.143em',
+                      textTransform: 'uppercase',
+                      color: '#6b6b6b',
+                      padding: '4px 10px',
+                    }}
+                  >
+                    {groupName}
+                  </DropdownMenuLabel>
+                )}
                 <DropdownMenuGroup>
-                  {groupOptions.map((opt) => {
-                    const isSelected = opt.value === value;
+                  {groupOptions.map((item) => {
+                    const isSelected = item.value === value;
                     return (
                       <DropdownMenuItem
-                        key={opt.value}
-                        onSelect={() => onChange(opt.value)}
+                        key={item.value}
+                        onSelect={() => onChange(item.value)}
                         style={{
+                          display: 'flex',
+                          alignItems: 'center',
                           justifyContent: 'space-between',
-                          fontWeight: isSelected ? 700 : 400,
+                          gap: '8px',
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: isSelected ? 600 : 400,
                           background: isSelected ? '#f8f6f2' : 'transparent',
+                          color: '#000000',
+                          cursor: 'pointer',
                         }}
                       >
-                        <span>{opt.label}</span>
+                        <span className="flex items-center gap-2 truncate">
+                          {item.logo && (
+                            <span className="shrink-0">{item.logo}</span>
+                          )}
+                          <span className="truncate">{item.label}</span>
+                        </span>
                         {isSelected && (
                           <CheckIcon
                             style={{ width: '13px', height: '13px', color: '#ff5c3c', flexShrink: 0 }}
@@ -165,19 +200,32 @@ export const SelectDropdown: React.FC<SelectDropdownProps> = ({
             ))
           ) : (
             <DropdownMenuGroup>
-              {options.map((opt) => {
-                const isSelected = opt.value === value;
+              {options.map((item) => {
+                const isSelected = item.value === value;
                 return (
                   <DropdownMenuItem
-                    key={opt.value}
-                    onSelect={() => onChange(opt.value)}
+                    key={item.value}
+                    onSelect={() => onChange(item.value)}
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       justifyContent: 'space-between',
-                      fontWeight: isSelected ? 700 : 400,
+                      gap: '8px',
+                      padding: '7px 10px',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: isSelected ? 600 : 400,
                       background: isSelected ? '#f8f6f2' : 'transparent',
+                      color: '#000000',
+                      cursor: 'pointer',
                     }}
                   >
-                    <span>{opt.label}</span>
+                    <span className="flex items-center gap-2 truncate">
+                      {item.logo && (
+                        <span className="shrink-0">{item.logo}</span>
+                      )}
+                      <span className="truncate">{item.label}</span>
+                    </span>
                     {isSelected && (
                       <CheckIcon
                         style={{ width: '13px', height: '13px', color: '#ff5c3c', flexShrink: 0 }}

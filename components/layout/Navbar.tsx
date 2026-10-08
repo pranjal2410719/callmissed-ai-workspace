@@ -22,7 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isConfig
       }}
     >
       <div
-        className="mx-auto flex h-full items-center justify-between px-5 sm:px-8"
+        className="mx-auto flex h-full items-center justify-between px-3 sm:px-6 md:px-8"
         style={{ maxWidth: '1200px' }}
       >
         {/* Brand */}

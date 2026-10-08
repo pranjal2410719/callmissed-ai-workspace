@@ -13,8 +13,23 @@ import {
 } from 'lucide-react';
 import { SUPPORTED_CHAT_MODELS } from '@/lib/callmissed/chat';
 import { ChatMessage } from '@/types/callmissed';
-import { SelectDropdown } from '@/components/ui/select-dropdown';
+import { SelectDropdown, SelectOption } from '@/components/ui/select-dropdown';
 import { AIMessage } from './AIMessage';
+import { Button } from '@/components/ui/button';
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerClose,
+} from '@/components/ui/drawer';
+import { Sarvam } from '@/components/ui/svgs/sarvam';
+import { Moonshot, Deepseek } from '@/components/ui/svgs/modelIcons';
+import { Openai } from '@/components/ui/svgs/openai';
+import { Gemini } from '@/components/ui/svgs/gemini';
 
 const STARTER_PROMPTS = [
   'Explain quantum computing in simple terms for high schoolers.',
@@ -30,11 +45,21 @@ const midGray = '#6b6b6b';
 const inkBlack = '#000000';
 const coral = '#ff5c3c';
 
+function getModelLogo(modelId: string) {
+  if (modelId.includes('sarvam')) return <Sarvam />;
+  if (modelId.includes('kimi')) return <Moonshot />;
+  if (modelId.includes('gpt')) return <Openai />;
+  if (modelId.includes('gemma')) return <Gemini />;
+  if (modelId.includes('deepseek')) return <Deepseek />;
+  return <Bot className="w-4 h-4 text-[#6b6b6b]" />;
+}
+
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('sarvam-105b');
   const [systemPrompt, setSystemPrompt] = useState('You are a helpful, precise, and polite AI assistant.');
+  const [tempPrompt, setTempPrompt] = useState(systemPrompt);
   const [showSettings, setShowSettings] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +71,12 @@ export const ChatInterface: React.FC = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  const modelOptions: SelectOption[] = SUPPORTED_CHAT_MODELS.map((m) => ({
+    value: m.id,
+    label: m.name,
+    logo: getModelLogo(m.id),
+  }));
 
   const handleSendMessage = async (textToSend?: string) => {
     const promptText = (textToSend !== undefined ? textToSend : input).trim();
@@ -98,129 +129,124 @@ export const ChatInterface: React.FC = () => {
   const clearChat = () => { setMessages([]); setError(null); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#ffffff' }}>
-      {/* Top Controls Bar */}
+    <div className="flex flex-col h-[calc(100vh-56px)] bg-white text-[#000000]">
+      {/* Top Controls Bar - Mobile responsive */}
       <div
+        className="flex flex-wrap sm:flex-nowrap items-center justify-between border-b px-4 sm:px-6 py-2.5 gap-2.5 shrink-0"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: `1px solid ${silver}`,
+          borderColor: silver,
           background: cream,
-          padding: '8px 24px',
-          gap: '12px',
-          flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: inkBlack, letterSpacing: '-0.01em' }}>
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4 w-full sm:w-auto">
+          <span className="text-[13px] font-bold text-[#000000] tracking-[-0.01em]">
             AI Chat
           </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '12px', letterSpacing: '-0.01em', color: midGray, fontWeight: 400 }}>
+          <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+            <span className="text-xs text-[#6b6b6b] hidden md:inline">
               Choose a model:
             </span>
             <SelectDropdown
               value={selectedModel}
               onChange={setSelectedModel}
-              options={SUPPORTED_CHAT_MODELS.map((m) => ({
-                value: m.id,
-                label: m.name,
-              }))}
-              triggerStyle={{ minWidth: '160px' }}
+              options={modelOptions}
+              triggerClassName="w-full sm:w-auto min-w-[160px]"
             />
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: '8px',
-              border: `1px solid ${showSettings ? inkBlack : silver}`,
-              background: showSettings ? '#f8f6f2' : '#ffffff',
-              padding: '5px 10px',
-              fontSize: '12px',
-              letterSpacing: '-0.01em',
-              color: showSettings ? inkBlack : midGray,
-              cursor: 'pointer',
-              fontWeight: showSettings ? 700 : 400,
-              transition: 'all 0.15s',
-            }}
-          >
-            <Sliders style={{ width: '13px', height: '13px' }} />
-            <span className="hidden sm:inline">Instructions</span>
-          </button>
+        <div className="flex items-center gap-2 ml-auto sm:ml-0">
+          <Drawer open={showSettings} onOpenChange={setShowSettings}>
+            <DrawerTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1.5"
+                onClick={() => setTempPrompt(systemPrompt)}
+              >
+                <Sliders className="w-3.5 h-3.5 text-[#6b6b6b]" />
+                <span className="hidden sm:inline">Instructions</span>
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent side="right">
+              <DrawerHeader>
+                <DrawerTitle>System Instructions</DrawerTitle>
+                <DrawerDescription>
+                  Define custom behavior, expertise, and formatting rules for CallMissed models.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="p-6 flex-1 flex flex-col gap-4 overflow-y-auto">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#6b6b6b] mb-2">
+                    Behavior Guidelines
+                  </label>
+                  <textarea
+                    value={tempPrompt}
+                    onChange={(e) => setTempPrompt(e.target.value)}
+                    rows={6}
+                    className="w-full rounded-lg border border-[#c4c4c4] bg-[#ffffff] p-3 text-sm text-[#000000] outline-none focus:border-[#000000] resize-none"
+                    placeholder="E.g., You are a senior full-stack engineer and helpful AI assistant..."
+                  />
+                </div>
+                <div>
+                  <span className="block text-xs font-bold uppercase tracking-wider text-[#6b6b6b] mb-2">
+                    Quick Presets
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'Precise & Concise', text: 'You are an AI assistant. Answer directly, concisely, and with precision.' },
+                      { label: 'Code Architect', text: 'You are a senior staff software architect. Provide clean TypeScript and idiomatic code.' },
+                      { label: 'Friendly Tutor', text: 'You are a patient, encouraging tutor who explains complex topics with relatable analogies.' },
+                    ].map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setTempPrompt(preset.text)}
+                        className="rounded-full border border-[#c4c4c4] bg-[#f8f6f2] px-3 py-1 text-xs text-[#141414] hover:border-[#000000] hover:bg-white transition-colors"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DrawerFooter>
+                <DrawerClose asChild>
+                  <Button variant="outline" size="sm">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setSystemPrompt(tempPrompt);
+                    setShowSettings(false);
+                  }}
+                >
+                  Save & Apply
+                </Button>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
 
           {messages.length > 0 && (
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={clearChat}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderRadius: '8px',
-                border: `1px solid ${silver}`,
-                background: '#ffffff',
-                padding: '5px 10px',
-                fontSize: '12px',
-                letterSpacing: '-0.01em',
-                color: midGray,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
+              className="flex items-center gap-1.5"
             >
-              <Trash2 style={{ width: '13px', height: '13px' }} />
+              <Trash2 className="w-3.5 h-3.5 text-[#6b6b6b]" />
               <span className="hidden sm:inline">Clear</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      {/* System Prompt Panel */}
-      {showSettings && (
-        <div
-          style={{
-            borderBottom: `1px solid ${silver}`,
-            background: cream,
-            padding: '12px 24px',
-            flexShrink: 0,
-          }}
-        >
-          <label
-            style={{ display: 'block', fontSize: '12px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}
-          >
-            System Instructions
-          </label>
-          <textarea
-            value={systemPrompt}
-            onChange={(e) => setSystemPrompt(e.target.value)}
-            rows={2}
-            style={{
-              width: '100%',
-              borderRadius: '8px',
-              border: `1px solid ${silver}`,
-              background: '#ffffff',
-              padding: '8px 12px',
-              fontSize: '13px',
-              letterSpacing: '-0.01em',
-              color: inkBlack,
-              outline: 'none',
-              resize: 'none',
-              boxSizing: 'border-box',
-            }}
-            placeholder="e.g. You are a helpful AI assistant..."
-          />
-        </div>
-      )}
-
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
+      {/* Messages - Mobile responsive layout */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8">
         {messages.length === 0 ? (
-          <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center', paddingTop: '48px' }}>
+          <div className="max-w-2xl mx-auto text-center pt-8 sm:pt-12">
             <div
               style={{
                 display: 'inline-flex',
@@ -238,8 +264,8 @@ export const ChatInterface: React.FC = () => {
             </div>
             <h2
               style={{
-                fontSize: '32px',
-                lineHeight: 1.1,
+                fontSize: '28px',
+                lineHeight: 1.15,
                 letterSpacing: '-0.64px',
                 fontWeight: 700,
                 color: inkBlack,
@@ -248,11 +274,11 @@ export const ChatInterface: React.FC = () => {
             >
               What can I help with?
             </h2>
-            <p style={{ fontSize: '14px', lineHeight: 1.5, letterSpacing: '-0.14px', color: midGray, marginBottom: '32px' }}>
+            <p className="text-sm text-[#6b6b6b] mb-8 max-w-md mx-auto">
               Direct conversation with CallMissed models. Select a model above and send a message.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', textAlign: 'left' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
               {STARTER_PROMPTS.map((prompt, idx) => (
                 <button
                   key={idx}
@@ -271,6 +297,7 @@ export const ChatInterface: React.FC = () => {
                     boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
                     transition: 'all 0.15s',
                   }}
+                  className="hover:border-[#000000] hover:bg-white"
                 >
                   {prompt}
                 </button>
@@ -278,18 +305,15 @@ export const ChatInterface: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="max-w-3xl mx-auto flex flex-col gap-5">
             {messages.map((msg, index) => {
               const isUser = msg.role === 'user';
               return (
                 <div
                   key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    justifyContent: isUser ? 'flex-end' : 'flex-start',
-                  }}
+                  className={`flex items-start gap-2.5 sm:gap-3 ${
+                    isUser ? 'justify-end' : 'justify-start'
+                  }`}
                 >
                   {!isUser && (
                     <div
@@ -310,9 +334,8 @@ export const ChatInterface: React.FC = () => {
                   )}
 
                   <div
-                    className="group relative"
+                    className="group relative max-w-[90%] sm:max-w-[82%]"
                     style={{
-                      maxWidth: '80%',
                       borderRadius: '12px',
                       padding: '12px 16px',
                       fontSize: '14px',
@@ -333,23 +356,13 @@ export const ChatInterface: React.FC = () => {
                     {!isUser && (
                       <button
                         onClick={() => handleCopy(msg.content, index)}
-                        className="opacity-0 group-hover:opacity-100"
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          borderRadius: '6px',
-                          border: `1px solid ${silver}`,
-                          background: '#ffffff',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          transition: 'opacity 0.15s',
-                        }}
+                        className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 rounded-md border border-[#c4c4c4] bg-white p-1 text-[#6b6b6b] hover:text-[#000000] transition-opacity"
+                        title="Copy message"
                       >
                         {copiedIndex === index ? (
                           <Check style={{ width: '12px', height: '12px', color: '#57ad6a' }} />
                         ) : (
-                          <Copy style={{ width: '12px', height: '12px', color: midGray }} />
+                          <Copy style={{ width: '12px', height: '12px' }} />
                         )}
                       </button>
                     )}
@@ -359,7 +372,7 @@ export const ChatInterface: React.FC = () => {
             })}
 
             {isLoading && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div className="flex items-start gap-2.5 sm:gap-3">
                 <div
                   style={{
                     width: '28px',
@@ -375,8 +388,9 @@ export const ChatInterface: React.FC = () => {
                 >
                   <Bot style={{ width: '14px', height: '14px', color: midGray }} />
                 </div>
-                <div style={{ fontSize: '13px', color: midGray, padding: '12px 0', letterSpacing: '-0.01em' }}>
-                  Generating response...
+                <div className="text-xs text-[#6b6b6b] py-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c3c] animate-ping" />
+                  <span>Generating response...</span>
                 </div>
               </div>
             )}
@@ -431,23 +445,15 @@ export const ChatInterface: React.FC = () => {
 
       {/* Input Area */}
       <div
-        style={{
-          borderTop: `1px solid ${silver}`,
-          background: '#ffffff',
-          padding: '16px 24px 20px',
-          flexShrink: 0,
-        }}
+        className="border-t bg-white px-3 py-3 sm:px-6 sm:py-4 shrink-0"
+        style={{ borderColor: silver }}
       >
-        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+        <div className="max-w-3xl mx-auto">
           <div
+            className="flex items-center gap-2 sm:gap-2.5 rounded-xl border p-1.5 pl-3 sm:pl-4 transition-colors"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              borderRadius: '12px',
-              border: `1px solid ${silver}`,
+              borderColor: silver,
               background: cream,
-              padding: '6px 6px 6px 16px',
               boxShadow: 'rgba(193, 194, 222, 0.2) 1px 1px 1px 0px inset, rgba(255, 255, 255, 0.8) -1px -1px 1px 0px inset, rgb(255, 255, 255) 1px 1px 1px 0px inset, rgba(221, 223, 228, 0.5) 5px 5px 24px 0px',
             }}
           >
@@ -499,7 +505,7 @@ export const ChatInterface: React.FC = () => {
             style={{
               display: 'flex',
               justifyContent: 'center',
-              marginTop: '8px',
+              marginTop: '6px',
               fontSize: '11px',
               letterSpacing: '-0.01em',
               color: midGray,
