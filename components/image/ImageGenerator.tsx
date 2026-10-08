@@ -15,6 +15,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { SUPPORTED_IMAGE_MODELS, IMAGE_SIZE_PRESETS } from '@/lib/callmissed/image';
+import { SelectDropdown } from '@/components/ui/select-dropdown';
 
 interface GeneratedImageItem {
   id: string;
@@ -240,57 +241,25 @@ export const ImageGenerator: React.FC = () => {
 
                 {/* Model & Size */}
                 <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
-                      Model
-                    </label>
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      style={{
-                        width: '100%',
-                        borderRadius: '8px',
-                        border: `1px solid ${silver}`,
-                        background: '#ffffff',
-                        padding: '6px 8px',
-                        fontSize: '12px',
-                        letterSpacing: '-0.01em',
-                        color: inkBlack,
-                        outline: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {SUPPORTED_IMAGE_MODELS.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name} ({m.tier})</option>
-                      ))}
-                    </select>
-                  </div>
+                  <SelectDropdown
+                    label="Model"
+                    value={selectedModel}
+                    onChange={setSelectedModel}
+                    options={SUPPORTED_IMAGE_MODELS.map((m) => ({
+                      value: m.id,
+                      label: `${m.name} (${m.tier})`,
+                    }))}
+                  />
 
-                  <div>
-                    <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
-                      Size
-                    </label>
-                    <select
-                      value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
-                      style={{
-                        width: '100%',
-                        borderRadius: '8px',
-                        border: `1px solid ${silver}`,
-                        background: '#ffffff',
-                        padding: '6px 8px',
-                        fontSize: '12px',
-                        letterSpacing: '-0.01em',
-                        color: inkBlack,
-                        outline: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {IMAGE_SIZE_PRESETS.map((p) => (
-                        <option key={p.value} value={p.value}>{p.label} ({p.desc})</option>
-                      ))}
-                    </select>
-                  </div>
+                  <SelectDropdown
+                    label="Size"
+                    value={selectedSize}
+                    onChange={setSelectedSize}
+                    options={IMAGE_SIZE_PRESETS.map((p) => ({
+                      value: p.value,
+                      label: `${p.label} (${p.desc})`,
+                    }))}
+                  />
                 </div>
 
                 {/* Advanced */}

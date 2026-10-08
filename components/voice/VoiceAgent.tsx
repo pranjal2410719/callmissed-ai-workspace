@@ -20,6 +20,7 @@ import {
   SUPPORTED_VOICE_MODELS,
 } from '@/lib/callmissed/voice';
 import { VoiceAgentState, TranscriptTurn } from '@/types/callmissed';
+import { SelectDropdown } from '@/components/ui/select-dropdown';
 
 interface LiveTranscriptItem {
   id: string;
@@ -346,50 +347,24 @@ export const VoiceAgent: React.FC = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '14px' }}>
-              {[
-                {
-                  label: 'Voice',
-                  value: selectedVoice,
-                  onChange: (v: string) => setSelectedVoice(v),
-                  options: SUPPORTED_VOICES.map((v) => ({ value: v.id, label: `${v.name} (${v.lang})` })),
-                },
-                {
-                  label: 'Language',
-                  value: selectedLanguage,
-                  onChange: (v: string) => setSelectedLanguage(v),
-                  options: SUPPORTED_LANGUAGES.map((l) => ({ value: l.code, label: l.name })),
-                },
-                {
-                  label: 'Model',
-                  value: selectedModel,
-                  onChange: (v: string) => setSelectedModel(v),
-                  options: SUPPORTED_VOICE_MODELS.map((m) => ({ value: m.id, label: m.name })),
-                },
-              ].map(({ label, value, onChange, options }) => (
-                <div key={label}>
-                  <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
-                    {label}
-                  </label>
-                  <select
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    style={{
-                      width: '100%',
-                      borderRadius: '8px',
-                      border: `1px solid ${silver}`,
-                      background: '#ffffff',
-                      padding: '7px 10px',
-                      fontSize: '13px',
-                      letterSpacing: '-0.01em',
-                      color: inkBlack,
-                      outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              ))}
+              <SelectDropdown
+                label="Voice"
+                value={selectedVoice}
+                onChange={setSelectedVoice}
+                options={SUPPORTED_VOICES.map((v) => ({ value: v.id, label: `${v.name} (${v.lang})` }))}
+              />
+              <SelectDropdown
+                label="Language"
+                value={selectedLanguage}
+                onChange={setSelectedLanguage}
+                options={SUPPORTED_LANGUAGES.map((l) => ({ value: l.code, label: l.name }))}
+              />
+              <SelectDropdown
+                label="Model"
+                value={selectedModel}
+                onChange={setSelectedModel}
+                options={SUPPORTED_VOICE_MODELS.map((m) => ({ value: m.id, label: m.name }))}
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

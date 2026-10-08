@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { SUPPORTED_CHAT_MODELS } from '@/lib/callmissed/chat';
 import { ChatMessage } from '@/types/callmissed';
+import { SelectDropdown } from '@/components/ui/select-dropdown';
+import { AIMessage } from './AIMessage';
 
 const STARTER_PROMPTS = [
   'Explain quantum computing in simple terms for high schoolers.',
@@ -110,31 +112,24 @@ export const ChatInterface: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, fontWeight: 400 }}>
-            Model
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: inkBlack, letterSpacing: '-0.01em' }}>
+            AI Chat
           </span>
-          <select
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            style={{
-              borderRadius: '8px',
-              border: `1px solid ${silver}`,
-              background: '#ffffff',
-              padding: '4px 8px',
-              fontSize: '13px',
-              letterSpacing: '-0.01em',
-              color: inkBlack,
-              outline: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {SUPPORTED_CHAT_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.provider})
-              </option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', letterSpacing: '-0.01em', color: midGray, fontWeight: 400 }}>
+              Choose a model:
+            </span>
+            <SelectDropdown
+              value={selectedModel}
+              onChange={setSelectedModel}
+              options={SUPPORTED_CHAT_MODELS.map((m) => ({
+                value: m.id,
+                label: m.name,
+              }))}
+              triggerStyle={{ minWidth: '160px' }}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -329,7 +324,11 @@ export const ChatInterface: React.FC = () => {
                       boxShadow: !isUser ? 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px' : 'none',
                     }}
                   >
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    {isUser ? (
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                    ) : (
+                      <AIMessage content={msg.content} />
+                    )}
 
                     {!isUser && (
                       <button
@@ -499,16 +498,14 @@ export const ChatInterface: React.FC = () => {
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               marginTop: '8px',
-              paddingLeft: '4px',
               fontSize: '11px',
               letterSpacing: '-0.01em',
-              color: '#c4c4c4',
+              color: midGray,
             }}
           >
-            <span>CallMissed Chat API</span>
-            <span>{selectedModel}</span>
+            <span>Press Enter to send, Shift + Enter for new line</span>
           </div>
         </div>
       </div>
