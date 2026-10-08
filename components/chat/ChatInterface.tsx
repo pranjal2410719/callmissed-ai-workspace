@@ -4,13 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
   Trash2,
-  Settings2,
-  Sparkles,
+  Sliders,
   Bot,
   User,
   Copy,
   Check,
-  RefreshCw,
+  RotateCcw,
   AlertCircle,
   MessageSquare,
 } from 'lucide-react';
@@ -61,7 +60,6 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Prepare payload with system prompt if provided
       const apiMessages = [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         ...newMessages.map((m) => ({ role: m.role, content: m.content })),
@@ -119,44 +117,42 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-zinc-950 text-zinc-100">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-white text-[#0d0d0d]">
       {/* Top Controls Bar */}
-      <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/60 px-4 py-3 sm:px-6">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Model:</span>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1.5 text-xs sm:text-sm font-medium text-zinc-100 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            >
-              {SUPPORTED_CHAT_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.provider})
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="flex items-center justify-between border-b border-[#0000001a] bg-[#f9f9f9] px-4 py-2.5 sm:px-6">
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-medium text-[#5d5d5d]">Model:</span>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1 text-xs sm:text-sm font-medium text-[#0d0d0d] outline-none hover:bg-[#0000000d] focus:border-[#0d0d0d]"
+          >
+            {SUPPORTED_CHAT_MODELS.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name} ({m.provider})
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1.5">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`flex items-center space-x-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium border transition-colors ${
+            className={`flex items-center space-x-1.5 rounded-[10px] px-2.5 py-1 text-xs font-medium border transition-colors ${
               showSettings
-                ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200'
+                ? 'border-[#0d0d0d] bg-[#0000000d] text-[#0d0d0d]'
+                : 'border-[#0000001a] bg-white text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
             }`}
             title="Configure System Prompt"
           >
-            <Settings2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">System Prompt</span>
+            <Sliders className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Instructions</span>
           </button>
 
           {messages.length > 0 && (
             <button
               onClick={clearChat}
-              className="flex items-center space-x-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition-colors"
+              className="flex items-center space-x-1.5 rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1 text-xs font-medium text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d] transition-colors"
               title="Clear Conversation"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -168,16 +164,16 @@ export const ChatInterface: React.FC = () => {
 
       {/* System Prompt Collapsible Panel */}
       {showSettings && (
-        <div className="border-b border-zinc-800 bg-zinc-900/80 px-4 py-3 sm:px-6">
-          <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-            System Instructions (Persona & Guidelines):
+        <div className="border-b border-[#0000001a] bg-[#f9f9f9] px-4 py-3 sm:px-6">
+          <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
+            System Instructions:
           </label>
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             rows={2}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 p-2 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            placeholder="E.g. You are a senior software engineer explaining concepts concisely..."
+            className="w-full rounded-[10px] border border-[#0000001a] bg-white p-2.5 text-xs sm:text-sm text-[#0d0d0d] placeholder-[#8f8f8f] outline-none focus:border-[#0d0d0d]"
+            placeholder="E.g. You are a helpful AI assistant..."
           />
         </div>
       )}
@@ -185,15 +181,15 @@ export const ChatInterface: React.FC = () => {
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
         {messages.length === 0 ? (
-          <div className="mx-auto max-w-2xl text-center py-12">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
-              <MessageSquare className="h-7 w-7" />
+          <div className="mx-auto max-w-2xl text-center py-16">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
+              <MessageSquare className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 text-xl font-bold tracking-tight text-zinc-100">
-              CallMissed AI Chat
+            <h2 className="mt-4 text-[24px] font-semibold leading-[1.33] tracking-normal text-[#0d0d0d]">
+              What can I help with?
             </h2>
-            <p className="mt-2 text-sm text-zinc-400">
-              Fast, multi-lingual AI conversation powered by CallMissed. Select a model and start a conversation.
+            <p className="mt-2 text-sm text-[#5d5d5d]">
+              Direct conversation with CallMissed models. Select a model and send a message.
             </p>
 
             <div className="mt-8 grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-left">
@@ -201,10 +197,9 @@ export const ChatInterface: React.FC = () => {
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(prompt)}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-3.5 text-xs sm:text-sm text-zinc-300 hover:border-indigo-500/50 hover:bg-zinc-900 transition-all text-left flex items-start space-x-2"
+                  className="rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-3 text-xs sm:text-sm text-[#0d0d0d] hover:bg-[#0000000d] transition-all text-left block leading-relaxed"
                 >
-                  <Sparkles className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
-                  <span>{prompt}</span>
+                  {prompt}
                 </button>
               ))}
             </div>
@@ -221,16 +216,16 @@ export const ChatInterface: React.FC = () => {
                   }`}
                 >
                   {!isUser && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 shadow-sm">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
                       <Bot className="h-4 w-4" />
                     </div>
                   )}
 
                   <div
-                    className={`group relative max-w-[85%] rounded-2xl px-4 py-3 text-sm sm:text-base leading-relaxed ${
+                    className={`group relative max-w-[85%] rounded-[10px] px-3.5 py-2.5 text-sm sm:text-base leading-relaxed ${
                       isUser
-                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/10'
-                        : 'bg-zinc-900 border border-zinc-800 text-zinc-100 shadow-sm'
+                        ? 'bg-[#f9f9f9] border border-[#0000001a] text-[#0d0d0d]'
+                        : 'bg-white text-[#0d0d0d]'
                     }`}
                   >
                     <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -238,20 +233,20 @@ export const ChatInterface: React.FC = () => {
                     {!isUser && (
                       <button
                         onClick={() => handleCopy(msg.content, index)}
-                        className="absolute top-2 right-2 rounded-lg bg-zinc-800/80 p-1.5 text-zinc-400 opacity-0 group-hover:opacity-100 hover:text-white transition-opacity"
-                        title="Copy message"
+                        className="absolute top-2 right-2 rounded-[6px] border border-[#0000001a] bg-white p-1 text-[#5d5d5d] opacity-0 group-hover:opacity-100 hover:text-[#0d0d0d] transition-opacity"
+                        title="Copy text"
                       >
                         {copiedIndex === index ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <Check className="h-3 w-3 text-[#0d0d0d]" />
                         ) : (
-                          <Copy className="h-3.5 w-3.5" />
+                          <Copy className="h-3 w-3" />
                         )}
                       </button>
                     )}
                   </div>
 
                   {isUser && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 border border-zinc-700">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#0d0d0d] text-white">
                       <User className="h-4 w-4" />
                     </div>
                   )}
@@ -261,31 +256,27 @@ export const ChatInterface: React.FC = () => {
 
             {isLoading && (
               <div className="flex items-start space-x-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
                   <Bot className="h-4 w-4" />
                 </div>
-                <div className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3.5">
-                  <div className="flex items-center space-x-1.5">
-                    <div className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce"></div>
-                    <div className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.2s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-indigo-400 animate-bounce [animation-delay:0.4s]"></div>
-                  </div>
+                <div className="rounded-[10px] px-3.5 py-2.5 text-sm text-[#5d5d5d]">
+                  Generating response...
                 </div>
               </div>
             )}
 
             {error && (
-              <div className="flex items-center space-x-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-                <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
+              <div className="flex items-center space-x-2.5 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-3 text-xs sm:text-sm text-[#0d0d0d]">
+                <AlertCircle className="h-4 w-4 shrink-0 text-[#5d5d5d]" />
                 <div className="flex-1">
-                  <p className="font-medium text-red-200">Unable to generate reply</p>
-                  <p className="text-xs text-red-300/80 mt-0.5">{error}</p>
+                  <p className="font-medium text-[#0d0d0d]">Request could not be completed</p>
+                  <p className="text-xs text-[#5d5d5d] mt-0.5">{error}</p>
                 </div>
                 <button
                   onClick={() => handleSendMessage()}
-                  className="flex items-center space-x-1 rounded-lg bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-200 hover:bg-red-500/30 transition-colors"
+                  className="flex items-center space-x-1 rounded-[8px] border border-[#0000001a] bg-white px-2 py-1 text-xs font-medium text-[#0d0d0d] hover:bg-[#0000000d]"
                 >
-                  <RefreshCw className="h-3 w-3" />
+                  <RotateCcw className="h-3 w-3" />
                   <span>Retry</span>
                 </button>
               </div>
@@ -297,30 +288,30 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-zinc-800 bg-zinc-900/60 p-4 sm:p-6">
+      <div className="border-t border-[#0000001a] bg-white p-4 sm:p-5">
         <div className="mx-auto max-w-3xl">
-          <div className="relative flex items-center rounded-2xl border border-zinc-700 bg-zinc-950 p-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 shadow-lg">
+          <div className="relative flex items-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-1.5 focus-within:border-[#0d0d0d] focus-within:bg-white transition-colors">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask anything... (Press Enter to send, Shift+Enter for new line)"
+              placeholder="Message CallMissed... (Press Enter to send)"
               rows={1}
-              className="w-full resize-none bg-transparent px-3 py-2 text-sm sm:text-base text-zinc-100 placeholder-zinc-500 outline-none max-h-32"
+              className="w-full resize-none bg-transparent px-3 py-1.5 text-sm sm:text-base text-[#0d0d0d] placeholder-[#8f8f8f] outline-none max-h-32"
             />
             <button
               onClick={() => handleSendMessage()}
               disabled={isLoading || !input.trim()}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white transition-all hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-indigo-600/20"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#0d0d0d] text-white transition-all hover:bg-[#000000] disabled:opacity-20 disabled:cursor-not-allowed"
               title="Send message"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-zinc-500 px-1">
-            <span>Powered by CallMissed OpenAI-compatible Chat API</span>
-            <span>Model: {selectedModel}</span>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-[#8f8f8f] px-1">
+            <span>CallMissed Chat API</span>
+            <span>{selectedModel}</span>
           </div>
         </div>
       </div>

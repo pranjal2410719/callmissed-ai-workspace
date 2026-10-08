@@ -5,13 +5,13 @@ import {
   Mic,
   MicOff,
   PhoneOff,
-  Settings2,
+  Sliders,
   Volume2,
   AlertCircle,
   Radio,
   FileText,
   Clock,
-  RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { Room, RoomEvent, Track, Participant, TranscriptionSegment } from 'livekit-client';
 import {
@@ -104,7 +104,7 @@ export const VoiceAgent: React.FC = () => {
       setCallDuration(0);
       setUserSpeaking(false);
 
-      // 1. Create session via server route (API key remains strictly on server)
+      // 1. Create session via server route
       const res = await fetch('/api/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,43 +264,43 @@ export const VoiceAgent: React.FC = () => {
   const isCallActive = state === 'connecting' || state === 'listening' || state === 'speaking' || state === 'processing';
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-zinc-950 text-zinc-100 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-3.5rem)] bg-white text-[#0d0d0d] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400 border border-emerald-500/20 flex items-center space-x-1.5">
-                <Radio className="h-3 w-3 animate-pulse" />
-                <span>CallMissed Real-Time Voice Agent</span>
+              <span className="rounded-[6px] border border-[#0000001a] bg-[#f9f9f9] px-2 py-0.5 text-xs font-normal text-[#5d5d5d] flex items-center space-x-1.5">
+                <Radio className="h-3 w-3" />
+                <span>CallMissed Voice Session</span>
               </span>
             </div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Voice Agent Interaction
+            <h1 className="mt-2 text-[24px] font-semibold leading-[1.33] text-[#0d0d0d]">
+              Voice Agent
             </h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Low-latency conversational voice powered by CallMissed WebRTC Voice Session API (STT → LLM → TTS).
+            <p className="mt-1 text-sm text-[#5d5d5d]">
+              Real-time WebRTC conversational voice interaction (STT → LLM → TTS).
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
             {!isCallActive && (
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className={`flex items-center space-x-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium border transition-colors ${
+                className={`flex items-center space-x-1.5 rounded-[10px] px-3 py-1.5 text-xs sm:text-sm font-medium border transition-colors ${
                   showSettings
-                    ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-400'
-                    : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white'
+                    ? 'border-[#0d0d0d] bg-[#0000000d] text-[#0d0d0d]'
+                    : 'border-[#0000001a] bg-white text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
                 }`}
               >
-                <Settings2 className="h-4 w-4" />
-                <span>Agent Configuration</span>
+                <Sliders className="h-4 w-4" />
+                <span>Configuration</span>
               </button>
             )}
 
             {isCallActive && (
-              <div className="flex items-center space-x-2 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3.5 py-2 text-sm text-zinc-300 font-mono">
-                <Clock className="h-4 w-4 text-zinc-400" />
+              <div className="flex items-center space-x-1.5 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] px-3 py-1.5 text-xs text-[#0d0d0d] font-mono">
+                <Clock className="h-3.5 w-3.5 text-[#5d5d5d]" />
                 <span>{formatDuration(callDuration)}</span>
               </div>
             )}
@@ -309,24 +309,24 @@ export const VoiceAgent: React.FC = () => {
 
         {/* Configuration Drawer */}
         {showSettings && !isCallActive && (
-          <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900/80 p-6 shadow-xl space-y-6">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2">
-                <Settings2 className="h-4 w-4 text-indigo-400" />
-                <span>Voice Agent Settings</span>
+          <div className="mb-8 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#0000001a] pb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#0d0d0d] flex items-center space-x-2">
+                <Sliders className="h-3.5 w-3.5" />
+                <span>Agent Settings</span>
               </h3>
-              <span className="text-xs text-zinc-400">Configured server-side for session creation</span>
+              <span className="text-xs text-[#5d5d5d]">Server-side session parameters</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
                   Voice
                 </label>
                 <select
                   value={selectedVoice}
                   onChange={(e) => setSelectedVoice(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs sm:text-sm text-zinc-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
                 >
                   {SUPPORTED_VOICES.map((v) => (
                     <option key={v.id} value={v.id}>
@@ -337,13 +337,13 @@ export const VoiceAgent: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
                   Language
                 </label>
                 <select
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs sm:text-sm text-zinc-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -354,13 +354,13 @@ export const VoiceAgent: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  LLM Model
+                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
+                  Model
                 </label>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs sm:text-sm text-zinc-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
                 >
                   {SUPPORTED_VOICE_MODELS.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -371,30 +371,30 @@ export const VoiceAgent: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  Agent Greeting (First spoken line)
+                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
+                  Agent Greeting:
                 </label>
                 <input
                   type="text"
                   value={greeting}
                   onChange={(e) => setGreeting(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs sm:text-sm text-zinc-100 outline-none focus:border-indigo-500"
+                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
                   placeholder="e.g. Hello! How can I assist you today?"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                  System Persona & Instructions
+                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
+                  Instructions:
                 </label>
                 <input
                   type="text"
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-xs sm:text-sm text-zinc-100 outline-none focus:border-indigo-500"
-                  placeholder="e.g. You are a friendly customer service voice agent..."
+                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
+                  placeholder="e.g. You are a helpful assistant..."
                 />
               </div>
             </div>
@@ -403,160 +403,135 @@ export const VoiceAgent: React.FC = () => {
 
         {/* Main Voice Agent Experience */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Voice Orb & Controls Column (Left) */}
-          <div className="flex flex-col items-center justify-between rounded-3xl border border-zinc-800 bg-zinc-900/50 p-8 shadow-2xl lg:col-span-6 min-h-[480px]">
+          {/* Voice Indicator & Controls Column (Left) */}
+          <div className="flex flex-col items-center justify-between rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-8 lg:col-span-6 min-h-[460px]">
             {/* Status indicator badge */}
-            <div className="flex items-center space-x-2 rounded-full bg-zinc-950/80 px-4 py-1.5 border border-zinc-800 shadow-inner">
+            <div className="flex items-center space-x-2 rounded-[10px] bg-white px-3 py-1 border border-[#0000001a]">
               <span
-                className={`h-2.5 w-2.5 rounded-full ${
+                className={`h-2 w-2 rounded-full ${
                   state === 'idle'
-                    ? 'bg-zinc-500'
+                    ? 'bg-[#8f8f8f]'
                     : state === 'connecting'
-                    ? 'bg-amber-400 animate-ping'
+                    ? 'bg-[#0d0d0d] animate-pulse'
                     : state === 'speaking'
-                    ? 'bg-violet-400 animate-pulse'
+                    ? 'bg-[#0d0d0d]'
                     : state === 'listening'
-                    ? 'bg-emerald-400 animate-pulse'
+                    ? 'bg-[#0d0d0d]'
                     : state === 'ended'
-                    ? 'bg-zinc-500'
-                    : 'bg-red-400'
+                    ? 'bg-[#8f8f8f]'
+                    : 'bg-[#0d0d0d]'
                 }`}
               />
-              <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300">
+              <span className="text-xs font-medium text-[#0d0d0d]">
                 {state === 'idle' && 'Ready'}
-                {state === 'connecting' && 'Connecting to WebRTC...'}
+                {state === 'connecting' && 'Connecting...'}
                 {state === 'listening' && (userSpeaking ? 'Listening to you...' : 'Listening')}
-                {state === 'speaking' && 'Agent Speaking...'}
+                {state === 'speaking' && 'Agent speaking...'}
                 {state === 'processing' && 'Processing...'}
-                {state === 'ended' && 'Call Ended'}
-                {state === 'error' && 'Connection Error'}
+                {state === 'ended' && 'Call ended'}
+                {state === 'error' && 'Connection error'}
               </span>
             </div>
 
-            {/* Glowing Interactive Voice Orb */}
-            <div className="my-8 relative flex items-center justify-center">
-              {/* Outer glow aura */}
+            {/* Restrained Central Voice Orb */}
+            <div className="my-8 flex items-center justify-center">
               <div
-                className={`absolute h-64 w-64 rounded-full blur-3xl transition-all duration-500 ${
+                className={`flex h-36 w-36 items-center justify-center rounded-full border transition-all duration-300 ${
                   state === 'speaking'
-                    ? 'bg-violet-600/30 scale-125'
+                    ? 'border-[#0d0d0d] bg-[#0d0d0d] text-white'
                     : state === 'listening'
-                    ? 'bg-emerald-600/25 scale-110'
+                    ? 'border-[#0d0d0d] bg-white text-[#0d0d0d]'
                     : state === 'connecting'
-                    ? 'bg-amber-600/20 scale-100 animate-pulse'
-                    : 'bg-indigo-600/10 scale-90'
-                }`}
-              />
-
-              {/* Middle animated ring */}
-              <div
-                className={`flex h-44 w-44 items-center justify-center rounded-full border transition-all duration-300 ${
-                  state === 'speaking'
-                    ? 'border-violet-400/50 bg-violet-950/40 animate-pulse'
-                    : state === 'listening'
-                    ? 'border-emerald-400/50 bg-emerald-950/40 animate-pulse'
-                    : 'border-zinc-800 bg-zinc-900/80'
+                    ? 'border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]'
+                    : 'border-[#0000001a] bg-white text-[#5d5d5d]'
                 }`}
               >
-                {/* Core Orb */}
-                <div
-                  className={`flex h-32 w-32 items-center justify-center rounded-full shadow-2xl transition-all duration-300 ${
-                    state === 'speaking'
-                      ? 'bg-gradient-to-tr from-violet-600 to-indigo-500 scale-105 shadow-violet-500/50'
-                      : state === 'listening'
-                      ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 scale-100 shadow-emerald-500/50'
-                      : state === 'connecting'
-                      ? 'bg-gradient-to-tr from-amber-600 to-orange-500 animate-spin shadow-amber-500/30'
-                      : 'bg-zinc-800 text-zinc-500 shadow-none'
-                  }`}
-                >
-                  {state === 'speaking' ? (
-                    <Volume2 className="h-12 w-12 text-white animate-bounce" />
-                  ) : state === 'listening' ? (
-                    <Mic className="h-12 w-12 text-white" />
-                  ) : state === 'connecting' ? (
-                    <RefreshCw className="h-10 w-10 text-white animate-spin" />
-                  ) : (
-                    <Mic className="h-12 w-12 text-zinc-400" />
-                  )}
-                </div>
+                {state === 'speaking' ? (
+                  <Volume2 className="h-10 w-10 text-white" />
+                ) : state === 'listening' ? (
+                  <Mic className="h-10 w-10 text-[#0d0d0d]" />
+                ) : state === 'connecting' ? (
+                  <RotateCcw className="h-8 w-8 text-[#0d0d0d] animate-spin" />
+                ) : (
+                  <Mic className="h-8 w-8 text-[#8f8f8f]" />
+                )}
               </div>
             </div>
 
             {/* Hint message */}
-            <p className="text-center text-xs text-zinc-400 max-w-xs mb-4">
-              {state === 'idle' && 'Click below to start a natural voice conversation with the AI agent.'}
-              {state === 'connecting' && 'Establishing secure WebRTC audio session...'}
-              {state === 'listening' && 'Speak normally into your microphone. The agent will listen and reply.'}
-              {state === 'speaking' && 'Agent is responding. You can interrupt anytime by speaking.'}
-              {state === 'ended' && 'Call finished. Review the transcript on the right or start a new call.'}
+            <p className="text-center text-xs text-[#5d5d5d] max-w-xs mb-4">
+              {state === 'idle' && 'Click below to start a natural voice conversation.'}
+              {state === 'connecting' && 'Connecting to WebRTC media server...'}
+              {state === 'listening' && 'Speak into your microphone. The agent will listen and reply.'}
+              {state === 'speaking' && 'Agent is speaking. You can interrupt anytime.'}
+              {state === 'ended' && 'Call finished. Start a new call or inspect the transcript.'}
               {state === 'error' && errorMessage}
             </p>
 
             {/* Action Buttons */}
-            <div className="flex items-center space-x-3 w-full justify-center">
+            <div className="flex items-center space-x-2.5 w-full justify-center">
               {!isCallActive ? (
                 <button
                   onClick={startVoiceCall}
-                  className="flex items-center space-x-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3.5 font-semibold text-white shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-500 transition-all text-sm sm:text-base"
+                  className="flex items-center space-x-2 rounded-[10px] bg-[#0d0d0d] px-5 py-2.5 font-medium text-sm text-white hover:bg-black transition-all"
                 >
-                  <Mic className="h-5 w-5" />
-                  <span>Start Voice Call</span>
+                  <Mic className="h-4 w-4" />
+                  <span>Start Conversation</span>
                 </button>
               ) : (
                 <>
                   <button
                     onClick={toggleMute}
-                    className={`flex items-center space-x-2 rounded-2xl px-4 py-3 text-sm font-semibold border transition-all ${
+                    className={`flex items-center space-x-1.5 rounded-[10px] px-3.5 py-2 text-xs font-medium border border-[#0000001a] transition-all ${
                       isMuted
-                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700'
+                        ? 'bg-[#0d0d0d] text-white'
+                        : 'bg-white text-[#0d0d0d] hover:bg-[#0000000d]'
                     }`}
                   >
-                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
                     <span>{isMuted ? 'Unmute' : 'Mute'}</span>
                   </button>
 
                   <button
                     onClick={endVoiceCall}
-                    className="flex items-center space-x-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-500 shadow-lg shadow-red-600/30 transition-all"
+                    className="flex items-center space-x-1.5 rounded-[10px] bg-[#0d0d0d] px-4 py-2 text-xs font-medium text-white hover:bg-black transition-all"
                   >
-                    <PhoneOff className="h-4 w-4" />
-                    <span>End Conversation</span>
+                    <PhoneOff className="h-3.5 w-3.5" />
+                    <span>End</span>
                   </button>
                 </>
               )}
             </div>
 
             {errorMessage && (
-              <div className="mt-4 flex items-start space-x-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300 w-full">
-                <AlertCircle className="h-4 w-4 shrink-0 text-red-400 mt-0.5" />
+              <div className="mt-4 flex items-start space-x-2 rounded-[10px] border border-[#0000001a] bg-white p-2.5 text-xs text-[#0d0d0d] w-full">
+                <AlertCircle className="h-4 w-4 shrink-0 text-[#5d5d5d] mt-0.5" />
                 <span className="flex-1">{errorMessage}</span>
               </div>
             )}
           </div>
 
           {/* Real-Time Transcript Column (Right) */}
-          <div className="flex flex-col rounded-3xl border border-zinc-800 bg-zinc-900/50 p-6 shadow-2xl lg:col-span-6 min-h-[480px]">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+          <div className="flex flex-col rounded-[10px] border border-[#0000001a] bg-white p-5 min-h-[460px]">
+            <div className="flex items-center justify-between border-b border-[#0000001a] pb-3">
               <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-emerald-400" />
-                <h3 className="text-sm font-semibold text-zinc-100">Live Captions & Transcript</h3>
+                <FileText className="h-4 w-4 text-[#0d0d0d]" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#0d0d0d]">Transcript</h3>
               </div>
-              <span className="text-xs text-zinc-500">
-                {isCallActive ? 'Streaming' : 'Recorded session'}
+              <span className="text-xs text-[#8f8f8f]">
+                {isCallActive ? 'Live stream' : 'Session complete'}
               </span>
             </div>
 
             {/* Transcript Scroll Window */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-3.5 max-h-[380px]">
+            <div className="flex-1 overflow-y-auto py-4 space-y-3 max-h-[380px]">
               {transcripts.length === 0 && !postCallTurns ? (
-                <div className="flex flex-col items-center justify-center text-center py-16 text-zinc-500">
-                  <FileText className="h-8 w-8 text-zinc-600 mb-2" />
+                <div className="flex flex-col items-center justify-center text-center py-16 text-[#8f8f8f]">
+                  <FileText className="h-6 w-6 text-[#8f8f8f] mb-1.5" />
                   <p className="text-xs">
                     {isCallActive
                       ? 'Listening for speech...'
-                      : 'Live transcription will appear here when you speak.'}
+                      : 'Live transcription will appear here.'}
                   </p>
                 </div>
               ) : (
@@ -568,14 +543,14 @@ export const VoiceAgent: React.FC = () => {
                         t.sender === 'user' ? 'items-end' : 'items-start'
                       }`}
                     >
-                      <span className="text-[10px] font-semibold uppercase text-zinc-500 mb-1 px-1">
+                      <span className="text-[10px] font-medium uppercase text-[#8f8f8f] mb-0.5 px-1">
                         {t.sender === 'user' ? 'You' : 'Agent'}
                       </span>
                       <div
-                        className={`rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm max-w-[85%] leading-relaxed ${
+                        className={`rounded-[10px] px-3 py-2 text-xs sm:text-sm max-w-[85%] leading-relaxed ${
                           t.sender === 'user'
-                            ? 'bg-emerald-600/20 border border-emerald-500/30 text-emerald-100'
-                            : 'bg-zinc-800 border border-zinc-700 text-zinc-100'
+                            ? 'bg-[#f9f9f9] border border-[#0000001a] text-[#0d0d0d]'
+                            : 'bg-white text-[#0d0d0d]'
                         }`}
                       >
                         {t.text}
@@ -585,27 +560,27 @@ export const VoiceAgent: React.FC = () => {
 
                   {/* Post call turns if retrieved */}
                   {postCallTurns && postCallTurns.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-zinc-800 space-y-3">
-                      <div className="text-xs font-semibold text-zinc-400">
-                        Session Summary & Server-Recorded Turns:
+                    <div className="mt-4 pt-3 border-t border-[#0000001a] space-y-2">
+                      <div className="text-xs font-semibold text-[#5d5d5d]">
+                        Server Turn History:
                       </div>
                       {postCallTurns.map((turn, i) => (
-                        <div key={turn.id || i} className="space-y-1.5 rounded-xl bg-zinc-950/80 p-3 border border-zinc-800 text-xs">
+                        <div key={turn.id || i} className="space-y-1 rounded-[8px] bg-[#f9f9f9] p-2.5 border border-[#0000001a] text-xs">
                           {turn.user_transcript && (
-                            <p className="text-emerald-300">
-                              <span className="font-semibold text-zinc-400">User: </span>
+                            <p className="text-[#0d0d0d]">
+                              <span className="font-semibold text-[#5d5d5d]">User: </span>
                               {turn.user_transcript}
                             </p>
                           )}
                           {turn.agent_response && (
-                            <p className="text-zinc-200">
-                              <span className="font-semibold text-zinc-400">Agent: </span>
+                            <p className="text-[#0d0d0d]">
+                              <span className="font-semibold text-[#5d5d5d]">Agent: </span>
                               {turn.agent_response}
                             </p>
                           )}
                           {turn.total_ms && (
-                            <p className="text-[10px] text-zinc-500">
-                              Latency: {turn.total_ms}ms • STT: {turn.stt_ms ?? '-'}ms • TTS TTFB: {turn.tts_ttfb_ms ?? '-'}ms
+                            <p className="text-[10px] text-[#8f8f8f]">
+                              Total: {turn.total_ms}ms • STT: {turn.stt_ms ?? '-'}ms • TTS: {turn.tts_ttfb_ms ?? '-'}ms
                             </p>
                           )}
                         </div>
@@ -619,9 +594,9 @@ export const VoiceAgent: React.FC = () => {
             </div>
 
             {/* Architecture Footer Note */}
-            <div className="pt-3 border-t border-zinc-800 text-[11px] text-zinc-500 flex items-center justify-between">
-              <span>WebRTC Client: livekit-client</span>
-              <span>Backend: CallMissed Voice Session API</span>
+            <div className="pt-3 border-t border-[#0000001a] text-[11px] text-[#8f8f8f] flex items-center justify-between">
+              <span>WebRTC: livekit-client</span>
+              <span>CallMissed Voice Session API</span>
             </div>
           </div>
         </div>

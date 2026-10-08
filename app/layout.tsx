@@ -1,21 +1,10 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
-
 export const metadata: Metadata = {
-  title: 'CallMissed AI Playground | Chat, Image & Real-Time Voice',
+  title: 'CallMissed AI Workspace',
   description:
-    'A unified AI workspace demonstrating text chat, image generation, and real-time WebRTC voice agent interaction powered exclusively by CallMissed.',
+    'A unified, restrained AI workspace for text chat, image generation, and real-time voice interaction powered exclusively by CallMissed.',
   keywords: ['CallMissed', 'AI Voice Agent', 'WebRTC', 'Text Chat', 'Image Generation', 'Next.js'],
 };
 
@@ -25,11 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
-    >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">{children}</body>
+    <html lang="en" className="h-full bg-white text-[#0d0d0d]">
+      <body className="min-h-full flex flex-col bg-white text-[#0d0d0d] font-sans">
+        {children}
+      </body>
     </html>
   );
 }
