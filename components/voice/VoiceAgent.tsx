@@ -28,17 +28,23 @@ interface LiveTranscriptItem {
   timestamp: number;
 }
 
+// Pietrastudio token aliases
+const cream = '#f8f6f2';
+const softCream = '#fffbe7';
+const silver = '#c4c4c4';
+const midGray = '#6b6b6b';
+const inkBlack = '#000000';
+const coral = '#ff5c3c';
+
 export const VoiceAgent: React.FC = () => {
   const [state, setState] = useState<VoiceAgentState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Audio & Mute State
   const [isMuted, setIsMuted] = useState(false);
   const [userSpeaking, setUserSpeaking] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
 
-  // Configuration options
   const [selectedVoice, setSelectedVoice] = useState('shubh');
   const [selectedLanguage, setSelectedLanguage] = useState('en-IN');
   const [selectedModel, setSelectedModel] = useState('kimi-k2.5');
@@ -48,17 +54,14 @@ export const VoiceAgent: React.FC = () => {
   );
   const [showSettings, setShowSettings] = useState(false);
 
-  // Live Transcripts
   const [transcripts, setTranscripts] = useState<LiveTranscriptItem[]>([]);
   const [postCallTurns, setPostCallTurns] = useState<TranscriptTurn[] | null>(null);
 
-  // LiveKit Room ref & audio elements ref
   const roomRef = useRef<Room | null>(null);
   const audioElementsRef = useRef<HTMLMediaElement[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-scroll transcripts
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcripts]);
@@ -68,32 +71,17 @@ export const VoiceAgent: React.FC = () => {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
-
     if (roomRef.current) {
-      try {
-        roomRef.current.disconnect();
-      } catch (e) {
-        console.error('Error disconnecting room:', e);
-      }
+      try { roomRef.current.disconnect(); } catch (e) { console.error('Error disconnecting room:', e); }
       roomRef.current = null;
     }
-
-    // Clean up attached audio elements
     audioElementsRef.current.forEach((el) => {
-      try {
-        el.pause();
-        el.remove();
-      } catch {}
+      try { el.pause(); el.remove(); } catch {}
     });
     audioElementsRef.current = [];
   }, []);
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      cleanupCall();
-    };
-  }, [cleanupCall]);
+  useEffect(() => () => { cleanupCall(); }, [cleanupCall]);
 
   const startVoiceCall = async () => {
     try {
@@ -104,7 +92,6 @@ export const VoiceAgent: React.FC = () => {
       setCallDuration(0);
       setUserSpeaking(false);
 
-      // 1. Create session via server route
       const res = await fetch('/api/voice/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,26 +106,16 @@ export const VoiceAgent: React.FC = () => {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error?.message || `Failed to create session (${res.status})`);
-      }
+      if (!res.ok) throw new Error(data?.error?.message || `Failed to create session (${res.status})`);
 
       const { wsUrl, token, id } = data;
-      if (!wsUrl || !token) {
-        throw new Error('CallMissed media connection credentials were not returned.');
-      }
+      if (!wsUrl || !token) throw new Error('CallMissed media connection credentials were not returned.');
 
       setSessionId(id);
 
-      // 2. Initialize LiveKit WebRTC client
-      const room = new Room({
-        adaptiveStream: true,
-        dynacast: true,
-      });
+      const room = new Room({ adaptiveStream: true, dynacast: true });
       roomRef.current = room;
 
-      // Handle subscribed tracks (Agent Audio)
       room.on(RoomEvent.TrackSubscribed, (track) => {
         if (track.kind === Track.Kind.Audio) {
           const audioElement = track.attach();
@@ -147,7 +124,6 @@ export const VoiceAgent: React.FC = () => {
         }
       });
 
-      // Handle Live Transcription with incremental segment update & deduplication
       room.on(
         RoomEvent.TranscriptionReceived,
         (segments: TranscriptionSegment[], participant?: Participant) => {
@@ -158,22 +134,11 @@ export const VoiceAgent: React.FC = () => {
               const isLocal = participant?.isLocal ?? false;
               const sender: 'user' | 'agent' = isLocal ? 'user' : 'agent';
               const segId = seg.id || `seg-${sender}-${Date.now()}`;
-
               const existingIdx = updated.findIndex((item) => item.id === segId);
               if (existingIdx >= 0) {
-                // Update in-place to avoid duplicate bubble entries during streaming
-                updated[existingIdx] = {
-                  ...updated[existingIdx],
-                  text: seg.text,
-                };
+                updated[existingIdx] = { ...updated[existingIdx], text: seg.text };
               } else {
-                // Append new segment
-                updated.push({
-                  id: segId,
-                  sender,
-                  text: seg.text,
-                  timestamp: Date.now(),
-                });
+                updated.push({ id: segId, sender, text: seg.text, timestamp: Date.now() });
               }
             }
             return updated;
@@ -181,29 +146,18 @@ export const VoiceAgent: React.FC = () => {
         }
       );
 
-      // Handle Active Speakers
       room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         const isAgentSpeaking = speakers.some((s) => !s.isLocal);
         const isUserSpeaking = speakers.some((s) => s.isLocal);
         setUserSpeaking(isUserSpeaking);
-
-        if (isAgentSpeaking) {
-          setState('speaking');
-        } else if (isUserSpeaking) {
-          setState('listening');
-        }
+        if (isAgentSpeaking) setState('speaking');
+        else if (isUserSpeaking) setState('listening');
       });
 
-      // Handle Disconnection
-      room.on(RoomEvent.Disconnected, () => {
-        setState('ended');
-        cleanupCall();
-      });
+      room.on(RoomEvent.Disconnected, () => { setState('ended'); cleanupCall(); });
 
-      // 3. Connect to media server
       await room.connect(wsUrl, token);
 
-      // 4. Request microphone permission and publish local audio
       try {
         await room.localParticipant.setMicrophoneEnabled(true);
       } catch (micErr: unknown) {
@@ -212,14 +166,9 @@ export const VoiceAgent: React.FC = () => {
       }
 
       setState('listening');
-
-      // Start call timer
-      timerIntervalRef.current = setInterval(() => {
-        setCallDuration((prev) => prev + 1);
-      }, 1000);
+      timerIntervalRef.current = setInterval(() => setCallDuration((prev) => prev + 1), 1000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Voice session failed';
-      setErrorMessage(msg);
+      setErrorMessage(err instanceof Error ? err.message : 'Voice session failed');
       setState('error');
       cleanupCall();
     }
@@ -229,18 +178,12 @@ export const VoiceAgent: React.FC = () => {
     setState('ended');
     const activeSessionId = sessionId;
     cleanupCall();
-
-    // Fetch final structured transcript
     if (activeSessionId) {
       try {
         const res = await fetch(`/api/voice/transcript?id=${activeSessionId}`);
         const data = await res.json();
-        if (data?.transcript && Array.isArray(data.transcript)) {
-          setPostCallTurns(data.transcript);
-        }
-      } catch (e) {
-        console.error('Failed to fetch call transcript:', e);
-      }
+        if (data?.transcript && Array.isArray(data.transcript)) setPostCallTurns(data.transcript);
+      } catch (e) { console.error('Failed to fetch call transcript:', e); }
     }
   };
 
@@ -250,9 +193,7 @@ export const VoiceAgent: React.FC = () => {
     try {
       await roomRef.current.localParticipant.setMicrophoneEnabled(!newMutedState);
       setIsMuted(newMutedState);
-    } catch (e) {
-      console.error('Error toggling microphone:', e);
-    }
+    } catch (e) { console.error('Error toggling microphone:', e); }
   };
 
   const formatDuration = (seconds: number) => {
@@ -263,203 +204,320 @@ export const VoiceAgent: React.FC = () => {
 
   const isCallActive = state === 'connecting' || state === 'listening' || state === 'speaking' || state === 'processing';
 
+  const orbBg = () => {
+    if (state === 'speaking') return coral;
+    if (state === 'listening') return '#ffffff';
+    if (state === 'connecting') return cream;
+    return cream;
+  };
+
+  const orbBorder = () => {
+    if (state === 'speaking' || state === 'listening') return `2px solid ${inkBlack}`;
+    return `1px solid ${silver}`;
+  };
+
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-white text-[#0d0d0d] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#ffffff', padding: '40px 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         {/* Header */}
-        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="rounded-[6px] border border-[#0000001a] bg-[#f9f9f9] px-2 py-0.5 text-xs font-normal text-[#5d5d5d] flex items-center space-x-1.5">
-                <Radio className="h-3 w-3" />
-                <span>CallMissed Voice Session</span>
-              </span>
-            </div>
-            <h1 className="mt-2 text-[24px] font-semibold leading-[1.33] text-[#0d0d0d]">
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: '9999px',
+                border: `1px solid ${silver}`,
+                background: cream,
+                padding: '3px 10px',
+                fontSize: '11px',
+                letterSpacing: '0.143em',
+                textTransform: 'uppercase',
+                color: midGray,
+                marginBottom: '12px',
+              }}
+            >
+              <Radio style={{ width: '11px', height: '11px' }} />
+              CallMissed Voice Session
+            </span>
+            <h1
+              style={{
+                fontSize: '32px',
+                fontWeight: 700,
+                lineHeight: 1.1,
+                letterSpacing: '-0.64px',
+                color: inkBlack,
+                marginBottom: '8px',
+              }}
+            >
               Voice Agent
             </h1>
-            <p className="mt-1 text-sm text-[#5d5d5d]">
+            <p style={{ fontSize: '14px', lineHeight: 1.5, letterSpacing: '-0.14px', color: midGray }}>
               Real-time WebRTC conversational voice interaction (STT → LLM → TTS).
             </p>
           </div>
 
-          <div className="flex items-center space-x-2.5">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {!isCallActive && (
               <button
                 onClick={() => setShowSettings(!showSettings)}
-                className={`flex items-center space-x-1.5 rounded-[10px] px-3 py-1.5 text-xs sm:text-sm font-medium border transition-colors ${
-                  showSettings
-                    ? 'border-[#0d0d0d] bg-[#0000000d] text-[#0d0d0d]'
-                    : 'border-[#0000001a] bg-white text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '8px',
+                  border: `1px solid ${showSettings ? inkBlack : silver}`,
+                  background: showSettings ? cream : '#ffffff',
+                  padding: '7px 14px',
+                  fontSize: '13px',
+                  letterSpacing: '-0.01em',
+                  color: showSettings ? inkBlack : midGray,
+                  fontWeight: showSettings ? 700 : 400,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
               >
-                <Sliders className="h-4 w-4" />
-                <span>Configuration</span>
+                <Sliders style={{ width: '14px', height: '14px' }} />
+                Configuration
               </button>
             )}
 
             {isCallActive && (
-              <div className="flex items-center space-x-1.5 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] px-3 py-1.5 text-xs text-[#0d0d0d] font-mono">
-                <Clock className="h-3.5 w-3.5 text-[#5d5d5d]" />
-                <span>{formatDuration(callDuration)}</span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '8px',
+                  border: `1px solid ${silver}`,
+                  background: cream,
+                  padding: '7px 14px',
+                  fontSize: '13px',
+                  fontFamily: 'monospace',
+                  color: inkBlack,
+                }}
+              >
+                <Clock style={{ width: '14px', height: '14px', color: midGray }} />
+                {formatDuration(callDuration)}
               </div>
             )}
           </div>
         </div>
 
-        {/* Configuration Drawer */}
+        {/* Configuration Panel */}
         {showSettings && !isCallActive && (
-          <div className="mb-8 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#0000001a] pb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#0d0d0d] flex items-center space-x-2">
-                <Sliders className="h-3.5 w-3.5" />
-                <span>Agent Settings</span>
+          <div
+            style={{
+              marginBottom: '28px',
+              borderRadius: '20px',
+              border: `1px solid ${silver}`,
+              background: cream,
+              padding: '20px',
+              boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: `1px solid ${silver}`,
+                paddingBottom: '12px',
+                marginBottom: '16px',
+              }}
+            >
+              <h3
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '11px',
+                  letterSpacing: '0.143em',
+                  textTransform: 'uppercase',
+                  color: inkBlack,
+                  fontWeight: 700,
+                }}
+              >
+                <Sliders style={{ width: '12px', height: '12px' }} />
+                Agent Settings
               </h3>
-              <span className="text-xs text-[#5d5d5d]">Server-side session parameters</span>
+              <span style={{ fontSize: '11px', color: midGray, letterSpacing: '-0.01em' }}>Server-side session parameters</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-                  Voice
-                </label>
-                <select
-                  value={selectedVoice}
-                  onChange={(e) => setSelectedVoice(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                >
-                  {SUPPORTED_VOICES.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.lang})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-                  Language
-                </label>
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-                  Model
-                </label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                >
-                  {SUPPORTED_VOICE_MODELS.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '14px' }}>
+              {[
+                {
+                  label: 'Voice',
+                  value: selectedVoice,
+                  onChange: (v: string) => setSelectedVoice(v),
+                  options: SUPPORTED_VOICES.map((v) => ({ value: v.id, label: `${v.name} (${v.lang})` })),
+                },
+                {
+                  label: 'Language',
+                  value: selectedLanguage,
+                  onChange: (v: string) => setSelectedLanguage(v),
+                  options: SUPPORTED_LANGUAGES.map((l) => ({ value: l.code, label: l.name })),
+                },
+                {
+                  label: 'Model',
+                  value: selectedModel,
+                  onChange: (v: string) => setSelectedModel(v),
+                  options: SUPPORTED_VOICE_MODELS.map((m) => ({ value: m.id, label: m.name })),
+                },
+              ].map(({ label, value, onChange, options }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
+                    {label}
+                  </label>
+                  <select
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      borderRadius: '8px',
+                      border: `1px solid ${silver}`,
+                      background: '#ffffff',
+                      padding: '7px 10px',
+                      fontSize: '13px',
+                      letterSpacing: '-0.01em',
+                      color: inkBlack,
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-                  Agent Greeting:
-                </label>
-                <input
-                  type="text"
-                  value={greeting}
-                  onChange={(e) => setGreeting(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                  placeholder="e.g. Hello! How can I assist you today?"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-                  Instructions:
-                </label>
-                <input
-                  type="text"
-                  value={systemPrompt}
-                  onChange={(e) => setSystemPrompt(e.target.value)}
-                  className="w-full rounded-[8px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                  placeholder="e.g. You are a helpful assistant..."
-                />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                { label: 'Greeting', value: greeting, onChange: setGreeting, placeholder: 'e.g. Hello! How can I assist you today?' },
+                { label: 'System Instructions', value: systemPrompt, onChange: setSystemPrompt, placeholder: 'e.g. You are a helpful assistant...' },
+              ].map(({ label, value, onChange, placeholder }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
+                    {label}
+                  </label>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    placeholder={placeholder}
+                    style={{
+                      width: '100%',
+                      borderRadius: '8px',
+                      border: `1px solid ${silver}`,
+                      background: '#ffffff',
+                      padding: '7px 10px',
+                      fontSize: '13px',
+                      letterSpacing: '-0.01em',
+                      color: inkBlack,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Main Voice Agent Experience */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Voice Indicator & Controls Column (Left) */}
-          <div className="flex flex-col items-center justify-between rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-8 lg:col-span-6 min-h-[460px]">
-            {/* Status indicator badge */}
-            <div className="flex items-center space-x-2 rounded-[10px] bg-white px-3 py-1 border border-[#0000001a]">
+        {/* Main Experience */}
+        <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: '20px' }} className="voice-grid">
+          {/* Left: Orb + Controls */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderRadius: '20px',
+              border: `1px solid ${silver}`,
+              background: cream,
+              padding: '32px 24px',
+              minHeight: '420px',
+              boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+            }}
+          >
+            {/* Status badge */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '7px',
+                borderRadius: '9999px',
+                background: '#ffffff',
+                border: `1px solid ${silver}`,
+                padding: '5px 14px',
+                fontSize: '12px',
+                letterSpacing: '-0.01em',
+                color: inkBlack,
+              }}
+            >
               <span
-                className={`h-2 w-2 rounded-full ${
-                  state === 'idle'
-                    ? 'bg-[#8f8f8f]'
-                    : state === 'connecting'
-                    ? 'bg-[#0d0d0d] animate-pulse'
-                    : state === 'speaking'
-                    ? 'bg-[#0d0d0d]'
-                    : state === 'listening'
-                    ? 'bg-[#0d0d0d]'
-                    : state === 'ended'
-                    ? 'bg-[#8f8f8f]'
-                    : 'bg-[#0d0d0d]'
-                }`}
+                style={{
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '9999px',
+                  background:
+                    state === 'idle' || state === 'ended' ? silver
+                      : state === 'connecting' ? coral
+                      : state === 'listening' ? '#57ad6a'
+                      : state === 'speaking' ? coral
+                      : coral,
+                  animation: state === 'connecting' ? 'pulse 1.2s infinite' : 'none',
+                }}
               />
-              <span className="text-xs font-medium text-[#0d0d0d]">
-                {state === 'idle' && 'Ready'}
-                {state === 'connecting' && 'Connecting...'}
-                {state === 'listening' && (userSpeaking ? 'Listening to you...' : 'Listening')}
-                {state === 'speaking' && 'Agent speaking...'}
-                {state === 'processing' && 'Processing...'}
-                {state === 'ended' && 'Call ended'}
-                {state === 'error' && 'Connection error'}
-              </span>
+              {state === 'idle' && 'Ready'}
+              {state === 'connecting' && 'Connecting...'}
+              {state === 'listening' && (userSpeaking ? 'Listening...' : 'Waiting...')}
+              {state === 'speaking' && 'Agent speaking'}
+              {state === 'processing' && 'Processing...'}
+              {state === 'ended' && 'Call ended'}
+              {state === 'error' && 'Error'}
             </div>
 
-            {/* Restrained Central Voice Orb */}
-            <div className="my-8 flex items-center justify-center">
-              <div
-                className={`flex h-36 w-36 items-center justify-center rounded-full border transition-all duration-300 ${
-                  state === 'speaking'
-                    ? 'border-[#0d0d0d] bg-[#0d0d0d] text-white'
-                    : state === 'listening'
-                    ? 'border-[#0d0d0d] bg-white text-[#0d0d0d]'
-                    : state === 'connecting'
-                    ? 'border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]'
-                    : 'border-[#0000001a] bg-white text-[#5d5d5d]'
-                }`}
-              >
-                {state === 'speaking' ? (
-                  <Volume2 className="h-10 w-10 text-white" />
-                ) : state === 'listening' ? (
-                  <Mic className="h-10 w-10 text-[#0d0d0d]" />
-                ) : state === 'connecting' ? (
-                  <RotateCcw className="h-8 w-8 text-[#0d0d0d] animate-spin" />
-                ) : (
-                  <Mic className="h-8 w-8 text-[#8f8f8f]" />
-                )}
-              </div>
+            {/* Orb */}
+            <div
+              style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: '9999px',
+                background: orbBg(),
+                border: orbBorder(),
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+                margin: '24px 0',
+              }}
+            >
+              {state === 'speaking' ? (
+                <Volume2 style={{ width: '36px', height: '36px', color: '#ffffff' }} />
+              ) : state === 'listening' ? (
+                <Mic style={{ width: '36px', height: '36px', color: inkBlack }} />
+              ) : state === 'connecting' ? (
+                <RotateCcw style={{ width: '32px', height: '32px', color: midGray }} className="animate-spin" />
+              ) : (
+                <Mic style={{ width: '32px', height: '32px', color: silver }} />
+              )}
             </div>
 
-            {/* Hint message */}
-            <p className="text-center text-xs text-[#5d5d5d] max-w-xs mb-4">
+            {/* Hint */}
+            <p
+              style={{
+                textAlign: 'center',
+                fontSize: '13px',
+                lineHeight: 1.5,
+                letterSpacing: '-0.01em',
+                color: midGray,
+                maxWidth: '260px',
+                marginBottom: '20px',
+              }}
+            >
               {state === 'idle' && 'Click below to start a natural voice conversation.'}
               {state === 'connecting' && 'Connecting to WebRTC media server...'}
               {state === 'listening' && 'Speak into your microphone. The agent will listen and reply.'}
@@ -468,70 +526,192 @@ export const VoiceAgent: React.FC = () => {
               {state === 'error' && errorMessage}
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-2.5 w-full justify-center">
+            {/* Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               {!isCallActive ? (
                 <button
                   onClick={startVoiceCall}
-                  className="flex items-center space-x-2 rounded-[10px] bg-[#0d0d0d] px-5 py-2.5 font-medium text-sm text-white hover:bg-black transition-all"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: coral,
+                    color: '#ffffff',
+                    padding: '10px 22px',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                    boxShadow: 'rgba(0, 0, 0, 0.02) 0px 2px 0px 0px',
+                  }}
                 >
-                  <Mic className="h-4 w-4" />
-                  <span>Start Conversation</span>
+                  <Mic style={{ width: '15px', height: '15px' }} />
+                  Start Conversation
                 </button>
               ) : (
                 <>
                   <button
                     onClick={toggleMute}
-                    className={`flex items-center space-x-1.5 rounded-[10px] px-3.5 py-2 text-xs font-medium border border-[#0000001a] transition-all ${
-                      isMuted
-                        ? 'bg-[#0d0d0d] text-white'
-                        : 'bg-white text-[#0d0d0d] hover:bg-[#0000000d]'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderRadius: '8px',
+                      border: `1px solid ${isMuted ? inkBlack : silver}`,
+                      background: isMuted ? inkBlack : '#ffffff',
+                      color: isMuted ? '#ffffff' : inkBlack,
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      letterSpacing: '-0.01em',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
                   >
-                    {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                    <span>{isMuted ? 'Unmute' : 'Mute'}</span>
+                    {isMuted ? <MicOff style={{ width: '14px', height: '14px' }} /> : <Mic style={{ width: '14px', height: '14px' }} />}
+                    {isMuted ? 'Unmute' : 'Mute'}
                   </button>
-
                   <button
                     onClick={endVoiceCall}
-                    className="flex items-center space-x-1.5 rounded-[10px] bg-[#0d0d0d] px-4 py-2 text-xs font-medium text-white hover:bg-black transition-all"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: inkBlack,
+                      color: '#ffffff',
+                      padding: '8px 14px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      letterSpacing: '-0.01em',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
                   >
-                    <PhoneOff className="h-3.5 w-3.5" />
-                    <span>End</span>
+                    <PhoneOff style={{ width: '14px', height: '14px' }} />
+                    End
                   </button>
                 </>
               )}
             </div>
 
             {errorMessage && (
-              <div className="mt-4 flex items-start space-x-2 rounded-[10px] border border-[#0000001a] bg-white p-2.5 text-xs text-[#0d0d0d] w-full">
-                <AlertCircle className="h-4 w-4 shrink-0 text-[#5d5d5d] mt-0.5" />
-                <span className="flex-1">{errorMessage}</span>
+              <div
+                style={{
+                  marginTop: '14px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  borderRadius: '12px',
+                  border: `1px solid ${silver}`,
+                  background: softCream,
+                  padding: '10px 12px',
+                  fontSize: '12px',
+                  letterSpacing: '-0.01em',
+                  color: inkBlack,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <AlertCircle style={{ width: '14px', height: '14px', color: coral, flexShrink: 0, marginTop: '1px' }} />
+                <span>{errorMessage}</span>
               </div>
             )}
           </div>
 
-          {/* Real-Time Transcript Column (Right) */}
-          <div className="flex flex-col rounded-[10px] border border-[#0000001a] bg-white p-5 min-h-[460px]">
-            <div className="flex items-center justify-between border-b border-[#0000001a] pb-3">
-              <div className="flex items-center space-x-2">
-                <FileText className="h-4 w-4 text-[#0d0d0d]" />
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#0d0d0d]">Transcript</h3>
+          {/* Right: Transcript */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '20px',
+              border: `1px solid ${silver}`,
+              background: '#ffffff',
+              padding: '20px',
+              minHeight: '420px',
+              boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: `1px solid ${silver}`,
+                paddingBottom: '12px',
+                marginBottom: '0',
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <FileText style={{ width: '15px', height: '15px', color: inkBlack }} />
+                <h3
+                  style={{
+                    fontSize: '11px',
+                    letterSpacing: '0.143em',
+                    textTransform: 'uppercase',
+                    fontWeight: 700,
+                    color: inkBlack,
+                  }}
+                >
+                  Transcript
+                </h3>
               </div>
-              <span className="text-xs text-[#8f8f8f]">
-                {isCallActive ? 'Live stream' : 'Session complete'}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11px',
+                  letterSpacing: '-0.01em',
+                  color: midGray,
+                }}
+              >
+                {isCallActive && (
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '9999px',
+                      background: coral,
+                    }}
+                  />
+                )}
+                {isCallActive ? 'Live' : 'Session complete'}
               </span>
             </div>
 
-            {/* Transcript Scroll Window */}
-            <div className="flex-1 overflow-y-auto py-4 space-y-3 max-h-[380px]">
+            {/* Scroll area */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '340px',
+              }}
+            >
               {transcripts.length === 0 && !postCallTurns ? (
-                <div className="flex flex-col items-center justify-center text-center py-16 text-[#8f8f8f]">
-                  <FileText className="h-6 w-6 text-[#8f8f8f] mb-1.5" />
-                  <p className="text-xs">
-                    {isCallActive
-                      ? 'Listening for speech...'
-                      : 'Live transcription will appear here.'}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    flex: 1,
+                    padding: '40px 0',
+                    color: midGray,
+                  }}
+                >
+                  <FileText style={{ width: '24px', height: '24px', marginBottom: '8px', color: silver }} />
+                  <p style={{ fontSize: '13px', lineHeight: 1.5, letterSpacing: '-0.01em' }}>
+                    {isCallActive ? 'Listening for speech...' : 'Live transcription will appear here.'}
                   </p>
                 </div>
               ) : (
@@ -539,47 +719,86 @@ export const VoiceAgent: React.FC = () => {
                   {transcripts.map((t) => (
                     <div
                       key={t.id}
-                      className={`flex flex-col ${
-                        t.sender === 'user' ? 'items-end' : 'items-start'
-                      }`}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: t.sender === 'user' ? 'flex-end' : 'flex-start',
+                      }}
                     >
-                      <span className="text-[10px] font-medium uppercase text-[#8f8f8f] mb-0.5 px-1">
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          letterSpacing: '0.1em',
+                          textTransform: 'uppercase',
+                          color: midGray,
+                          marginBottom: '4px',
+                          paddingLeft: '4px',
+                          paddingRight: '4px',
+                        }}
+                      >
                         {t.sender === 'user' ? 'You' : 'Agent'}
                       </span>
                       <div
-                        className={`rounded-[10px] px-3 py-2 text-xs sm:text-sm max-w-[85%] leading-relaxed ${
-                          t.sender === 'user'
-                            ? 'bg-[#f9f9f9] border border-[#0000001a] text-[#0d0d0d]'
-                            : 'bg-white text-[#0d0d0d]'
-                        }`}
+                        style={{
+                          borderRadius: '12px',
+                          padding: '9px 13px',
+                          fontSize: '13px',
+                          lineHeight: 1.5,
+                          letterSpacing: '-0.01em',
+                          maxWidth: '85%',
+                          color: inkBlack,
+                          background: t.sender === 'user' ? cream : softCream,
+                          border: `1px solid ${silver}`,
+                        }}
                       >
                         {t.text}
                       </div>
                     </div>
                   ))}
 
-                  {/* Post call turns if retrieved */}
                   {postCallTurns && postCallTurns.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-[#0000001a] space-y-2">
-                      <div className="text-xs font-semibold text-[#5d5d5d]">
-                        Server Turn History:
+                    <div
+                      style={{
+                        marginTop: '12px',
+                        paddingTop: '12px',
+                        borderTop: `1px solid ${silver}`,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, fontWeight: 700 }}>
+                        Server Turn History
                       </div>
                       {postCallTurns.map((turn, i) => (
-                        <div key={turn.id || i} className="space-y-1 rounded-[8px] bg-[#f9f9f9] p-2.5 border border-[#0000001a] text-xs">
+                        <div
+                          key={turn.id || i}
+                          style={{
+                            borderRadius: '10px',
+                            background: cream,
+                            border: `1px solid ${silver}`,
+                            padding: '10px 12px',
+                            fontSize: '12px',
+                            letterSpacing: '-0.01em',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                          }}
+                        >
                           {turn.user_transcript && (
-                            <p className="text-[#0d0d0d]">
-                              <span className="font-semibold text-[#5d5d5d]">User: </span>
+                            <p style={{ color: inkBlack }}>
+                              <span style={{ fontWeight: 700, color: midGray }}>User: </span>
                               {turn.user_transcript}
                             </p>
                           )}
                           {turn.agent_response && (
-                            <p className="text-[#0d0d0d]">
-                              <span className="font-semibold text-[#5d5d5d]">Agent: </span>
+                            <p style={{ color: inkBlack }}>
+                              <span style={{ fontWeight: 700, color: midGray }}>Agent: </span>
                               {turn.agent_response}
                             </p>
                           )}
                           {turn.total_ms && (
-                            <p className="text-[10px] text-[#8f8f8f]">
+                            <p style={{ fontSize: '10px', color: silver }}>
                               Total: {turn.total_ms}ms • STT: {turn.stt_ms ?? '-'}ms • TTS: {turn.tts_ttfb_ms ?? '-'}ms
                             </p>
                           )}
@@ -593,14 +812,37 @@ export const VoiceAgent: React.FC = () => {
               )}
             </div>
 
-            {/* Architecture Footer Note */}
-            <div className="pt-3 border-t border-[#0000001a] text-[11px] text-[#8f8f8f] flex items-center justify-between">
+            {/* Footer */}
+            <div
+              style={{
+                paddingTop: '10px',
+                borderTop: `1px solid ${silver}`,
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '11px',
+                letterSpacing: '-0.01em',
+                color: silver,
+                flexShrink: 0,
+              }}
+            >
               <span>WebRTC: livekit-client</span>
               <span>CallMissed Voice Session API</span>
             </div>
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+        @media (max-width: 1024px) {
+          .voice-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

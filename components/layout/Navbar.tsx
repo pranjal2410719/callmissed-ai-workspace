@@ -13,76 +13,112 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isConfigured }) => {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#0000001a] bg-[#f9f9f9]">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+    <header
+      className="sticky top-0 z-40 w-full"
+      style={{
+        background: '#ffffff',
+        borderBottom: '1px solid #e8e8ea',
+        height: '56px',
+      }}
+    >
+      <div
+        className="mx-auto flex h-full items-center justify-between px-5 sm:px-8"
+        style={{ maxWidth: '1200px' }}
+      >
         {/* Brand */}
-        <div className="flex items-center space-x-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-[10px] border border-[#0000001a] bg-white text-[#0d0d0d]">
-            <span className="text-xs font-semibold">CM</span>
-          </div>
-          <div className="flex items-baseline space-x-2">
-            <span className="text-sm font-semibold tracking-tight text-[#0d0d0d]">CallMissed</span>
-            <span className="text-xs font-normal text-[#5d5d5d] hidden sm:inline">AI Workspace</span>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <span
+            style={{
+              fontFamily: "'Labil-Bold', 'Inter', ui-sans-serif, system-ui, sans-serif",
+              fontWeight: 700,
+              fontSize: '16px',
+              letterSpacing: '-0.01em',
+              color: '#000000',
+            }}
+          >
+            CallMissed
+          </span>
+          <span
+            style={{
+              fontSize: '12px',
+              color: '#6b6b6b',
+              letterSpacing: '-0.01em',
+            }}
+            className="hidden sm:inline"
+          >
+            AI Studio
+          </span>
         </div>
 
         {/* Tab Navigation */}
-        <nav className="flex items-center space-x-1 rounded-[10px] bg-[#0000000d] p-0.5">
-          <button
-            onClick={() => onTabChange('chat')}
-            className={`flex items-center space-x-1.5 rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'chat'
-                ? 'bg-white text-[#0d0d0d] shadow-none border border-[#0000001a]'
-                : 'text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
-            }`}
-          >
-            <Bot className="h-4 w-4" />
-            <span>Chat</span>
-          </button>
-
-          <button
-            onClick={() => onTabChange('image')}
-            className={`flex items-center space-x-1.5 rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'image'
-                ? 'bg-white text-[#0d0d0d] shadow-none border border-[#0000001a]'
-                : 'text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
-            }`}
-          >
-            <ImageIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Image Studio</span>
-            <span className="sm:hidden">Image</span>
-          </button>
-
-          <button
-            onClick={() => onTabChange('voice')}
-            className={`flex items-center space-x-1.5 rounded-[8px] px-3 py-1.5 text-sm font-medium transition-colors ${
-              activeTab === 'voice'
-                ? 'bg-white text-[#0d0d0d] shadow-none border border-[#0000001a]'
-                : 'text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
-            }`}
-          >
-            <Mic className="h-4 w-4" />
-            <span className="hidden sm:inline">Voice Agent</span>
-            <span className="sm:hidden">Voice</span>
-          </button>
+        <nav
+          className="flex items-center gap-1"
+          style={{
+            background: '#f8f6f2',
+            borderRadius: '9999px',
+            padding: '4px',
+          }}
+        >
+          {(
+            [
+              { id: 'chat', label: 'Chat', shortLabel: 'Chat', Icon: Bot },
+              { id: 'image', label: 'Image Studio', shortLabel: 'Image', Icon: ImageIcon },
+              { id: 'voice', label: 'Voice Agent', shortLabel: 'Voice', Icon: Mic },
+            ] as const
+          ).map(({ id, label, shortLabel, Icon }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => onTabChange(id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '9999px',
+                  padding: '6px 14px',
+                  fontSize: '13px',
+                  letterSpacing: '-0.01em',
+                  fontWeight: active ? 700 : 400,
+                  color: active ? '#000000' : '#6b6b6b',
+                  background: active ? '#ffffff' : 'transparent',
+                  boxShadow: active ? 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px' : 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon style={{ width: '14px', height: '14px' }} />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sm:hidden">{shortLabel}</span>
+              </button>
+            );
+          })}
         </nav>
 
         {/* Status / Links */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           {isConfigured !== null && (
             <div
-              className={`hidden md:flex items-center space-x-1.5 rounded-[10px] px-2.5 py-1 text-xs font-normal border border-[#0000001a] bg-white ${
-                isConfigured ? 'text-[#0d0d0d]' : 'text-[#5d5d5d]'
-              }`}
+              className="hidden md:flex items-center gap-1.5"
+              style={{
+                background: '#f8f6f2',
+                border: '1px solid #c4c4c4',
+                borderRadius: '9999px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                letterSpacing: '-0.01em',
+                color: isConfigured ? '#000000' : '#6b6b6b',
+              }}
             >
               {isConfigured ? (
                 <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#0d0d0d]" />
-                  <span>API Connected</span>
+                  <CheckCircle2 style={{ width: '12px', height: '12px', color: '#57ad6a' }} />
+                  <span>API Ready</span>
                 </>
               ) : (
                 <>
-                  <AlertCircle className="h-3.5 w-3.5 text-[#8f8f8f]" />
+                  <AlertCircle style={{ width: '12px', height: '12px', color: '#6b6b6b' }} />
                   <span>Key Required</span>
                 </>
               )}
@@ -93,10 +129,19 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, isConfig
             href="https://docs.callmissed.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center space-x-1 text-xs text-[#5d5d5d] hover:text-[#0d0d0d] p-1.5 transition-colors"
+            className="flex items-center gap-1"
+            style={{
+              fontSize: '13px',
+              letterSpacing: '-0.01em',
+              color: '#6b6b6b',
+              textDecoration: 'none',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.color = '#000000')}
+            onMouseOut={(e) => (e.currentTarget.style.color = '#6b6b6b')}
           >
             <span className="hidden sm:inline">Docs</span>
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink style={{ width: '13px', height: '13px' }} />
           </a>
         </div>
       </div>

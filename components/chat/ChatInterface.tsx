@@ -6,12 +6,10 @@ import {
   Trash2,
   Sliders,
   Bot,
-  User,
   Copy,
   Check,
   RotateCcw,
   AlertCircle,
-  MessageSquare,
 } from 'lucide-react';
 import { SUPPORTED_CHAT_MODELS } from '@/lib/callmissed/chat';
 import { ChatMessage } from '@/types/callmissed';
@@ -22,6 +20,13 @@ const STARTER_PROMPTS = [
   'Translate "Welcome to our store, how may I help you?" into Hindi and Tamil.',
   'What are the advantages of WebRTC over WebSockets for voice agents?',
 ];
+
+// Pietrastudio token aliases
+const cream = '#f8f6f2';
+const silver = '#c4c4c4';
+const midGray = '#6b6b6b';
+const inkBlack = '#000000';
+const coral = '#ff5c3c';
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -36,12 +41,8 @@ export const ChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
   const handleSendMessage = async (textToSend?: string) => {
@@ -49,11 +50,7 @@ export const ChatInterface: React.FC = () => {
     if (!promptText || isLoading) return;
 
     setError(null);
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: promptText,
-    };
-
+    const userMessage: ChatMessage = { role: 'user', content: promptText };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInput('');
@@ -68,31 +65,16 @@ export const ChatInterface: React.FC = () => {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: apiMessages,
-        }),
+        body: JSON.stringify({ model: selectedModel, messages: apiMessages }),
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || `Request failed with status ${res.status}`);
 
-      if (!res.ok) {
-        throw new Error(data?.error?.message || `Request failed with status ${res.status}`);
-      }
-
-      const assistantReply =
-        data?.choices?.[0]?.message?.content || 'No response content returned.';
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: assistantReply,
-        },
-      ]);
+      const assistantReply = data?.choices?.[0]?.message?.content || 'No response content returned.';
+      setMessages((prev) => [...prev, { role: 'assistant', content: assistantReply }]);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -111,21 +93,41 @@ export const ChatInterface: React.FC = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const clearChat = () => {
-    setMessages([]);
-    setError(null);
-  };
+  const clearChat = () => { setMessages([]); setError(null); };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col bg-white text-[#0d0d0d]">
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#ffffff' }}>
       {/* Top Controls Bar */}
-      <div className="flex items-center justify-between border-b border-[#0000001a] bg-[#f9f9f9] px-4 py-2.5 sm:px-6">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-medium text-[#5d5d5d]">Model:</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${silver}`,
+          background: cream,
+          padding: '8px 24px',
+          gap: '12px',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '12px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, fontWeight: 400 }}>
+            Model
+          </span>
           <select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
-            className="rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1 text-xs sm:text-sm font-medium text-[#0d0d0d] outline-none hover:bg-[#0000000d] focus:border-[#0d0d0d]"
+            style={{
+              borderRadius: '8px',
+              border: `1px solid ${silver}`,
+              background: '#ffffff',
+              padding: '4px 8px',
+              fontSize: '13px',
+              letterSpacing: '-0.01em',
+              color: inkBlack,
+              outline: 'none',
+              cursor: 'pointer',
+            }}
           >
             {SUPPORTED_CHAT_MODELS.map((m) => (
               <option key={m.id} value={m.id}>
@@ -135,69 +137,145 @@ export const ChatInterface: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex items-center space-x-1.5">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className={`flex items-center space-x-1.5 rounded-[10px] px-2.5 py-1 text-xs font-medium border transition-colors ${
-              showSettings
-                ? 'border-[#0d0d0d] bg-[#0000000d] text-[#0d0d0d]'
-                : 'border-[#0000001a] bg-white text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d]'
-            }`}
-            title="Configure System Prompt"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: '8px',
+              border: `1px solid ${showSettings ? inkBlack : silver}`,
+              background: showSettings ? '#f8f6f2' : '#ffffff',
+              padding: '5px 10px',
+              fontSize: '12px',
+              letterSpacing: '-0.01em',
+              color: showSettings ? inkBlack : midGray,
+              cursor: 'pointer',
+              fontWeight: showSettings ? 700 : 400,
+              transition: 'all 0.15s',
+            }}
           >
-            <Sliders className="h-3.5 w-3.5" />
+            <Sliders style={{ width: '13px', height: '13px' }} />
             <span className="hidden sm:inline">Instructions</span>
           </button>
 
           {messages.length > 0 && (
             <button
               onClick={clearChat}
-              className="flex items-center space-x-1.5 rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1 text-xs font-medium text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d] transition-colors"
-              title="Clear Conversation"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                borderRadius: '8px',
+                border: `1px solid ${silver}`,
+                background: '#ffffff',
+                padding: '5px 10px',
+                fontSize: '12px',
+                letterSpacing: '-0.01em',
+                color: midGray,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 style={{ width: '13px', height: '13px' }} />
               <span className="hidden sm:inline">Clear</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* System Prompt Collapsible Panel */}
+      {/* System Prompt Panel */}
       {showSettings && (
-        <div className="border-b border-[#0000001a] bg-[#f9f9f9] px-4 py-3 sm:px-6">
-          <label className="block text-xs font-medium text-[#5d5d5d] mb-1">
-            System Instructions:
+        <div
+          style={{
+            borderBottom: `1px solid ${silver}`,
+            background: cream,
+            padding: '12px 24px',
+            flexShrink: 0,
+          }}
+        >
+          <label
+            style={{ display: 'block', fontSize: '12px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}
+          >
+            System Instructions
           </label>
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             rows={2}
-            className="w-full rounded-[10px] border border-[#0000001a] bg-white p-2.5 text-xs sm:text-sm text-[#0d0d0d] placeholder-[#8f8f8f] outline-none focus:border-[#0d0d0d]"
-            placeholder="E.g. You are a helpful AI assistant..."
+            style={{
+              width: '100%',
+              borderRadius: '8px',
+              border: `1px solid ${silver}`,
+              background: '#ffffff',
+              padding: '8px 12px',
+              fontSize: '13px',
+              letterSpacing: '-0.01em',
+              color: inkBlack,
+              outline: 'none',
+              resize: 'none',
+              boxSizing: 'border-box',
+            }}
+            placeholder="e.g. You are a helpful AI assistant..."
           />
         </div>
       )}
 
-      {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '32px 24px' }}>
         {messages.length === 0 ? (
-          <div className="mx-auto max-w-2xl text-center py-16">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
-              <MessageSquare className="h-5 w-5" />
+          <div style={{ maxWidth: '640px', margin: '0 auto', textAlign: 'center', paddingTop: '48px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
+                background: cream,
+                border: `1px solid ${silver}`,
+                marginBottom: '16px',
+              }}
+            >
+              <Bot style={{ width: '20px', height: '20px', color: midGray }} />
             </div>
-            <h2 className="mt-4 text-[24px] font-semibold leading-[1.33] tracking-normal text-[#0d0d0d]">
+            <h2
+              style={{
+                fontSize: '32px',
+                lineHeight: 1.1,
+                letterSpacing: '-0.64px',
+                fontWeight: 700,
+                color: inkBlack,
+                marginBottom: '8px',
+              }}
+            >
               What can I help with?
             </h2>
-            <p className="mt-2 text-sm text-[#5d5d5d]">
-              Direct conversation with CallMissed models. Select a model and send a message.
+            <p style={{ fontSize: '14px', lineHeight: 1.5, letterSpacing: '-0.14px', color: midGray, marginBottom: '32px' }}>
+              Direct conversation with CallMissed models. Select a model above and send a message.
             </p>
 
-            <div className="mt-8 grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-left">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', textAlign: 'left' }}>
               {STARTER_PROMPTS.map((prompt, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(prompt)}
-                  className="rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-3 text-xs sm:text-sm text-[#0d0d0d] hover:bg-[#0000000d] transition-all text-left block leading-relaxed"
+                  style={{
+                    borderRadius: '12px',
+                    border: `1px solid ${silver}`,
+                    background: cream,
+                    padding: '14px 16px',
+                    fontSize: '13px',
+                    letterSpacing: '-0.01em',
+                    color: '#333333',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    lineHeight: 1.5,
+                    boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                    transition: 'all 0.15s',
+                  }}
                 >
                   {prompt}
                 </button>
@@ -205,79 +283,144 @@ export const ChatInterface: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-3xl space-y-6">
+          <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {messages.map((msg, index) => {
               const isUser = msg.role === 'user';
               return (
                 <div
                   key={index}
-                  className={`flex items-start space-x-3 ${
-                    isUser ? 'justify-end' : 'justify-start'
-                  }`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    justifyContent: isUser ? 'flex-end' : 'flex-start',
+                  }}
                 >
                   {!isUser && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
-                      <Bot className="h-4 w-4" />
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '12px',
+                        background: cream,
+                        border: `1px solid ${silver}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Bot style={{ width: '14px', height: '14px', color: midGray }} />
                     </div>
                   )}
 
                   <div
-                    className={`group relative max-w-[85%] rounded-[10px] px-3.5 py-2.5 text-sm sm:text-base leading-relaxed ${
-                      isUser
-                        ? 'bg-[#f9f9f9] border border-[#0000001a] text-[#0d0d0d]'
-                        : 'bg-white text-[#0d0d0d]'
-                    }`}
+                    className="group relative"
+                    style={{
+                      maxWidth: '80%',
+                      borderRadius: '12px',
+                      padding: '12px 16px',
+                      fontSize: '14px',
+                      lineHeight: 1.6,
+                      letterSpacing: '-0.14px',
+                      color: inkBlack,
+                      background: isUser ? cream : '#ffffff',
+                      border: isUser ? `1px solid ${silver}` : 'none',
+                      boxShadow: !isUser ? 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px' : 'none',
+                    }}
                   >
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
 
                     {!isUser && (
                       <button
                         onClick={() => handleCopy(msg.content, index)}
-                        className="absolute top-2 right-2 rounded-[6px] border border-[#0000001a] bg-white p-1 text-[#5d5d5d] opacity-0 group-hover:opacity-100 hover:text-[#0d0d0d] transition-opacity"
-                        title="Copy text"
+                        className="opacity-0 group-hover:opacity-100"
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          borderRadius: '6px',
+                          border: `1px solid ${silver}`,
+                          background: '#ffffff',
+                          padding: '4px',
+                          cursor: 'pointer',
+                          transition: 'opacity 0.15s',
+                        }}
                       >
                         {copiedIndex === index ? (
-                          <Check className="h-3 w-3 text-[#0d0d0d]" />
+                          <Check style={{ width: '12px', height: '12px', color: '#57ad6a' }} />
                         ) : (
-                          <Copy className="h-3 w-3" />
+                          <Copy style={{ width: '12px', height: '12px', color: midGray }} />
                         )}
                       </button>
                     )}
                   </div>
-
-                  {isUser && (
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#0d0d0d] text-white">
-                      <User className="h-4 w-4" />
-                    </div>
-                  )}
                 </div>
               );
             })}
 
             {isLoading && (
-              <div className="flex items-start space-x-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] text-[#0d0d0d]">
-                  <Bot className="h-4 w-4" />
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '12px',
+                    background: cream,
+                    border: `1px solid ${silver}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Bot style={{ width: '14px', height: '14px', color: midGray }} />
                 </div>
-                <div className="rounded-[10px] px-3.5 py-2.5 text-sm text-[#5d5d5d]">
+                <div style={{ fontSize: '13px', color: midGray, padding: '12px 0', letterSpacing: '-0.01em' }}>
                   Generating response...
                 </div>
               </div>
             )}
 
             {error && (
-              <div className="flex items-center space-x-2.5 rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-3 text-xs sm:text-sm text-[#0d0d0d]">
-                <AlertCircle className="h-4 w-4 shrink-0 text-[#5d5d5d]" />
-                <div className="flex-1">
-                  <p className="font-medium text-[#0d0d0d]">Request could not be completed</p>
-                  <p className="text-xs text-[#5d5d5d] mt-0.5">{error}</p>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  borderRadius: '12px',
+                  border: `1px solid ${silver}`,
+                  background: '#fffbe7',
+                  padding: '12px 16px',
+                  fontSize: '13px',
+                  letterSpacing: '-0.01em',
+                  color: inkBlack,
+                  boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                }}
+              >
+                <AlertCircle style={{ width: '16px', height: '16px', color: coral, flexShrink: 0, marginTop: '1px' }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 700, marginBottom: '2px' }}>Request could not be completed</p>
+                  <p style={{ color: midGray, fontSize: '12px' }}>{error}</p>
                 </div>
                 <button
                   onClick={() => handleSendMessage()}
-                  className="flex items-center space-x-1 rounded-[8px] border border-[#0000001a] bg-white px-2 py-1 text-xs font-medium text-[#0d0d0d] hover:bg-[#0000000d]"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderRadius: '8px',
+                    border: `1px solid ${silver}`,
+                    background: '#ffffff',
+                    padding: '5px 10px',
+                    fontSize: '12px',
+                    color: inkBlack,
+                    cursor: 'pointer',
+                    letterSpacing: '-0.01em',
+                  }}
                 >
-                  <RotateCcw className="h-3 w-3" />
-                  <span>Retry</span>
+                  <RotateCcw style={{ width: '11px', height: '11px' }} />
+                  Retry
                 </button>
               </div>
             )}
@@ -288,28 +431,82 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-[#0000001a] bg-white p-4 sm:p-5">
-        <div className="mx-auto max-w-3xl">
-          <div className="relative flex items-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-1.5 focus-within:border-[#0d0d0d] focus-within:bg-white transition-colors">
+      <div
+        style={{
+          borderTop: `1px solid ${silver}`,
+          background: '#ffffff',
+          padding: '16px 24px 20px',
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              borderRadius: '12px',
+              border: `1px solid ${silver}`,
+              background: cream,
+              padding: '6px 6px 6px 16px',
+              boxShadow: 'rgba(193, 194, 222, 0.2) 1px 1px 1px 0px inset, rgba(255, 255, 255, 0.8) -1px -1px 1px 0px inset, rgb(255, 255, 255) 1px 1px 1px 0px inset, rgba(221, 223, 228, 0.5) 5px 5px 24px 0px',
+            }}
+          >
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message CallMissed... (Press Enter to send)"
+              placeholder="Message CallMissed... (Enter to send)"
               rows={1}
-              className="w-full resize-none bg-transparent px-3 py-1.5 text-sm sm:text-base text-[#0d0d0d] placeholder-[#8f8f8f] outline-none max-h-32"
+              style={{
+                flex: 1,
+                resize: 'none',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontSize: '14px',
+                letterSpacing: '-0.14px',
+                lineHeight: 1.5,
+                color: inkBlack,
+                maxHeight: '128px',
+                overflow: 'auto',
+              }}
             />
             <button
               onClick={() => handleSendMessage()}
               disabled={isLoading || !input.trim()}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-[#0d0d0d] text-white transition-all hover:bg-[#000000] disabled:opacity-20 disabled:cursor-not-allowed"
-              title="Send message"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '34px',
+                height: '34px',
+                borderRadius: '8px',
+                border: 'none',
+                background: coral,
+                color: '#ffffff',
+                cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
+                opacity: isLoading || !input.trim() ? 0.3 : 1,
+                flexShrink: 0,
+                transition: 'all 0.15s',
+                boxShadow: 'rgba(0, 0, 0, 0.02) 0px 2px 0px 0px',
+              }}
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send style={{ width: '14px', height: '14px' }} />
             </button>
           </div>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-[#8f8f8f] px-1">
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: '8px',
+              paddingLeft: '4px',
+              fontSize: '11px',
+              letterSpacing: '-0.01em',
+              color: '#c4c4c4',
+            }}
+          >
             <span>CallMissed Chat API</span>
             <span>{selectedModel}</span>
           </div>

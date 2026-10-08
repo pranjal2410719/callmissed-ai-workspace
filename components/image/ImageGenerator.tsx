@@ -33,6 +33,13 @@ const SAMPLE_PROMPTS = [
   'Monochrome aerial landscape of mist rolling over mountain ridges',
 ];
 
+// Pietrastudio token aliases
+const cream = '#f8f6f2';
+const silver = '#c4c4c4';
+const midGray = '#6b6b6b';
+const inkBlack = '#000000';
+const coral = '#ff5c3c';
+
 export const ImageGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState('flux-2-klein-9b');
@@ -67,15 +74,10 @@ export const ImageGenerator: React.FC = () => {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error?.message || `Image generation failed with status ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data?.error?.message || `Image generation failed with status ${res.status}`);
 
       const item = data?.data?.[0];
-      if (!item || (!item.b64_json && !item.url)) {
-        throw new Error('No image data returned from CallMissed API.');
-      }
+      if (!item || (!item.b64_json && !item.url)) throw new Error('No image data returned from CallMissed API.');
 
       const newImage: GeneratedImageItem = {
         id: `img-${Date.now()}`,
@@ -90,17 +92,14 @@ export const ImageGenerator: React.FC = () => {
       setCurrentImage(newImage);
       setHistory((prev) => [newImage, ...prev]);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
   const getImageSrc = (img: GeneratedImageItem) => {
-    if (img.b64_json) {
-      return `data:image/png;base64,${img.b64_json}`;
-    }
+    if (img.b64_json) return `data:image/png;base64,${img.b64_json}`;
     return img.url || '';
   };
 
@@ -120,274 +119,597 @@ export const ImageGenerator: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-white text-[#0d0d0d] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-2">
-            <span className="rounded-[6px] border border-[#0000001a] bg-[#f9f9f9] px-2 py-0.5 text-xs font-normal text-[#5d5d5d]">
-              Image Studio
-            </span>
-          </div>
-          <h1 className="mt-2 text-[24px] font-semibold leading-[1.33] text-[#0d0d0d]">
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#ffffff', padding: '40px 24px' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Page header */}
+        <div style={{ marginBottom: '36px' }}>
+          <span
+            style={{
+              display: 'inline-block',
+              borderRadius: '9999px',
+              border: `1px solid ${silver}`,
+              background: cream,
+              padding: '3px 10px',
+              fontSize: '11px',
+              letterSpacing: '0.143em',
+              textTransform: 'uppercase',
+              color: midGray,
+              marginBottom: '12px',
+              fontWeight: 400,
+            }}
+          >
             Image Studio
+          </span>
+          <h1
+            style={{
+              fontSize: '32px',
+              fontWeight: 700,
+              lineHeight: 1.1,
+              letterSpacing: '-0.64px',
+              color: inkBlack,
+              marginBottom: '8px',
+            }}
+          >
+            Generate Images
           </h1>
-          <p className="mt-1 text-sm text-[#5d5d5d]">
-            Generate images from natural-language prompts using CallMissed models.
+          <p style={{ fontSize: '14px', lineHeight: 1.5, letterSpacing: '-0.14px', color: midGray }}>
+            Create images from natural-language prompts using CallMissed models.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          {/* Controls Column (Left) */}
-          <div className="space-y-6 lg:col-span-5">
-            {/* Prompt Card */}
-            <div className="rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-5">
-              <label className="block text-xs font-medium uppercase tracking-wider text-[#5d5d5d] mb-2">
-                Prompt Description
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the image you want to create..."
-                rows={4}
-                className="w-full rounded-[10px] border border-[#0000001a] bg-white p-3 text-sm text-[#0d0d0d] placeholder-[#8f8f8f] outline-none focus:border-[#0d0d0d]"
-              />
-
-              {/* Sample Prompts */}
-              <div className="mt-3">
-                <div className="text-xs font-medium text-[#5d5d5d] mb-1.5">
-                  Example prompts:
-                </div>
-                <div className="space-y-1.5">
-                  {SAMPLE_PROMPTS.map((sp, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        setPrompt(sp);
-                        handleGenerate(sp);
-                      }}
-                      className="w-full rounded-[8px] border border-[#0000001a] bg-white p-2 text-left text-xs text-[#5d5d5d] hover:text-[#0d0d0d] hover:bg-[#0000000d] transition-all truncate block"
-                    >
-                      &ldquo;{sp}&rdquo;
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Model & Size Selectors */}
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#5d5d5d] mb-1.5">
-                    Model
-                  </label>
-                  <select
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    className="w-full rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                  >
-                    {SUPPORTED_IMAGE_MODELS.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.tier})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[#5d5d5d] mb-1.5">
-                    Aspect Ratio & Size
-                  </label>
-                  <select
-                    value={selectedSize}
-                    onChange={(e) => setSelectedSize(e.target.value)}
-                    className="w-full rounded-[10px] border border-[#0000001a] bg-white px-2.5 py-1.5 text-xs sm:text-sm text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
-                  >
-                    {IMAGE_SIZE_PRESETS.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label} ({p.desc})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Advanced toggle */}
-              <div className="mt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center space-x-1 text-xs text-[#5d5d5d] hover:text-[#0d0d0d] font-medium"
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '24px' }} className="lg:grid-cols-12-custom">
+          <div style={{ display: 'grid', gridTemplateColumns: '5fr 7fr', gap: '24px' }} className="hidden lg:grid">
+            {/* Controls Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Prompt Card */}
+              <div
+                style={{
+                  borderRadius: '20px',
+                  border: `1px solid ${silver}`,
+                  background: cream,
+                  padding: '20px',
+                  boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                }}
+              >
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '11px',
+                    letterSpacing: '0.143em',
+                    textTransform: 'uppercase',
+                    color: midGray,
+                    marginBottom: '8px',
+                  }}
                 >
-                  <Sliders className="h-3.5 w-3.5" />
-                  <span>{showAdvanced ? 'Hide options' : 'More options'}</span>
-                </button>
+                  Prompt
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Describe the image you want to create..."
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    borderRadius: '8px',
+                    border: `1px solid ${silver}`,
+                    background: '#ffffff',
+                    padding: '10px 12px',
+                    fontSize: '13px',
+                    letterSpacing: '-0.01em',
+                    color: inkBlack,
+                    outline: 'none',
+                    resize: 'none',
+                    lineHeight: 1.5,
+                    boxSizing: 'border-box',
+                    boxShadow: 'rgba(193, 194, 222, 0.2) 1px 1px 1px 0px inset',
+                  }}
+                />
 
-                {showAdvanced && (
-                  <div className="mt-2.5 space-y-2 rounded-[10px] border border-[#0000001a] bg-white p-3">
-                    <div>
-                      <label className="block text-xs font-normal text-[#5d5d5d] mb-1">
-                        Negative prompt:
+                {/* Sample Prompts */}
+                <div style={{ marginTop: '14px' }}>
+                  <div style={{ fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '8px' }}>
+                    Examples
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {SAMPLE_PROMPTS.map((sp, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => { setPrompt(sp); handleGenerate(sp); }}
+                        style={{
+                          borderRadius: '8px',
+                          border: `1px solid ${silver}`,
+                          background: '#ffffff',
+                          padding: '8px 10px',
+                          fontSize: '12px',
+                          letterSpacing: '-0.01em',
+                          color: midGray,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                          transition: 'all 0.15s',
+                        }}
+                        title={sp}
+                      >
+                        &ldquo;{sp}&rdquo;
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Model & Size */}
+                <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
+                      Model
+                    </label>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      style={{
+                        width: '100%',
+                        borderRadius: '8px',
+                        border: `1px solid ${silver}`,
+                        background: '#ffffff',
+                        padding: '6px 8px',
+                        fontSize: '12px',
+                        letterSpacing: '-0.01em',
+                        color: inkBlack,
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {SUPPORTED_IMAGE_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name} ({m.tier})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '6px' }}>
+                      Size
+                    </label>
+                    <select
+                      value={selectedSize}
+                      onChange={(e) => setSelectedSize(e.target.value)}
+                      style={{
+                        width: '100%',
+                        borderRadius: '8px',
+                        border: `1px solid ${silver}`,
+                        background: '#ffffff',
+                        padding: '6px 8px',
+                        fontSize: '12px',
+                        letterSpacing: '-0.01em',
+                        color: inkBlack,
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {IMAGE_SIZE_PRESETS.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label} ({p.desc})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Advanced */}
+                <div style={{ marginTop: '14px' }}>
+                  <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      letterSpacing: '-0.01em',
+                      color: midGray,
+                      padding: 0,
+                    }}
+                  >
+                    <Sliders style={{ width: '12px', height: '12px' }} />
+                    {showAdvanced ? 'Hide options' : 'More options'}
+                  </button>
+
+                  {showAdvanced && (
+                    <div
+                      style={{
+                        marginTop: '10px',
+                        borderRadius: '8px',
+                        border: `1px solid ${silver}`,
+                        background: '#ffffff',
+                        padding: '10px',
+                      }}
+                    >
+                      <label style={{ display: 'block', fontSize: '11px', color: midGray, marginBottom: '5px', letterSpacing: '-0.01em' }}>
+                        Negative prompt
                       </label>
                       <input
                         type="text"
                         value={negativePrompt}
                         onChange={(e) => setNegativePrompt(e.target.value)}
                         placeholder="e.g. blurry, low quality, distorted"
-                        className="w-full rounded-[8px] border border-[#0000001a] bg-[#f9f9f9] px-2.5 py-1 text-xs text-[#0d0d0d] outline-none focus:border-[#0d0d0d]"
+                        style={{
+                          width: '100%',
+                          borderRadius: '6px',
+                          border: `1px solid ${silver}`,
+                          background: cream,
+                          padding: '6px 8px',
+                          fontSize: '12px',
+                          letterSpacing: '-0.01em',
+                          color: inkBlack,
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
                       />
+                    </div>
+                  )}
+                </div>
+
+                {/* Generate Button */}
+                <button
+                  onClick={() => handleGenerate()}
+                  disabled={isLoading || !prompt.trim()}
+                  style={{
+                    marginTop: '20px',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: coral,
+                    color: '#ffffff',
+                    padding: '11px 20px',
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    letterSpacing: '-0.01em',
+                    cursor: isLoading || !prompt.trim() ? 'not-allowed' : 'pointer',
+                    opacity: isLoading || !prompt.trim() ? 0.35 : 1,
+                    transition: 'all 0.15s',
+                    boxShadow: 'rgba(0, 0, 0, 0.02) 0px 2px 0px 0px',
+                  }}
+                >
+                  {isLoading ? (
+                    <><RotateCcw style={{ width: '16px', height: '16px' }} className="animate-spin" /><span>Generating...</span></>
+                  ) : (
+                    <span>Generate Image</span>
+                  )}
+                </button>
+
+                {error && (
+                  <div
+                    style={{
+                      marginTop: '14px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      borderRadius: '12px',
+                      border: `1px solid ${silver}`,
+                      background: '#fffbe7',
+                      padding: '12px 14px',
+                      fontSize: '12px',
+                      letterSpacing: '-0.01em',
+                      color: inkBlack,
+                      boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                    }}
+                  >
+                    <AlertCircle style={{ width: '15px', height: '15px', color: coral, flexShrink: 0, marginTop: '1px' }} />
+                    <div>
+                      <p style={{ fontWeight: 700, marginBottom: '2px' }}>Generation Error</p>
+                      <p style={{ color: midGray }}>{error}</p>
                     </div>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Generate Button */}
-              <button
-                onClick={() => handleGenerate()}
-                disabled={isLoading || !prompt.trim()}
-                className="mt-6 flex w-full items-center justify-center space-x-2 rounded-[10px] bg-[#0d0d0d] px-4 py-2.5 font-medium text-sm text-white hover:bg-[#000000] disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            {/* Preview Column */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Main stage */}
+              <div
+                style={{
+                  borderRadius: '20px',
+                  border: `1px solid ${silver}`,
+                  background: cream,
+                  padding: '20px',
+                  minHeight: '460px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  position: 'relative',
+                  boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                }}
               >
                 {isLoading ? (
-                  <>
-                    <RotateCcw className="h-4 w-4 animate-spin" />
-                    <span>Generating image...</span>
-                  </>
-                ) : (
-                  <span>Generate</span>
-                )}
-              </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', textAlign: 'center', padding: '40px 0' }}>
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: '#ffffff',
+                        border: `1px solid ${silver}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <RotateCcw style={{ width: '22px', height: '22px', color: coral }} className="animate-spin" />
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: inkBlack }}>Rendering image...</p>
+                    <p style={{ fontSize: '12px', color: midGray, letterSpacing: '-0.01em' }}>Model: {selectedModel}</p>
+                  </div>
+                ) : currentImage ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div
+                      className="group"
+                      style={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        borderRadius: '16px',
+                        background: '#ffffff',
+                        border: `1px solid ${silver}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        maxHeight: '460px',
+                      }}
+                    >
+                      <img
+                        src={getImageSrc(currentImage)}
+                        alt={currentImage.prompt}
+                        style={{ maxHeight: '460px', width: 'auto', objectFit: 'contain' }}
+                      />
+                      <div
+                        className="opacity-0 group-hover:opacity-100"
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'rgba(0,0,0,0.45)',
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                          justifyContent: 'space-between',
+                          padding: '16px',
+                          transition: 'opacity 0.2s',
+                        }}
+                      >
+                        <p style={{ fontSize: '11px', color: '#ffffff', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {currentImage.prompt}
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => setIsZoomOpen(true)}
+                            style={{
+                              borderRadius: '8px',
+                              border: `1px solid ${silver}`,
+                              background: '#ffffff',
+                              padding: '6px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Maximize2 style={{ width: '14px', height: '14px', color: inkBlack }} />
+                          </button>
+                          <button
+                            onClick={() => handleDownload(currentImage)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              background: coral,
+                              padding: '6px 12px',
+                              fontSize: '12px',
+                              color: '#ffffff',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Download style={{ width: '13px', height: '13px' }} />
+                            Download
+                          </button>
+                        </div>
+                      </div>
+                    </div>
 
-              {error && (
-                <div className="mt-4 flex items-start space-x-2.5 rounded-[10px] border border-[#0000001a] bg-white p-3 text-xs text-[#0d0d0d]">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-[#5d5d5d] mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-semibold">Generation Error</p>
-                    <p className="text-[#5d5d5d] mt-0.5">{error}</p>
+                    {/* Metadata */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        borderRadius: '12px',
+                        background: '#ffffff',
+                        border: `1px solid ${silver}`,
+                        padding: '10px 14px',
+                        fontSize: '12px',
+                        letterSpacing: '-0.01em',
+                        color: midGray,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ color: inkBlack, fontWeight: 700 }}>{currentImage.model}</span>
+                        <span>{currentImage.size}</span>
+                      </div>
+                      <button
+                        onClick={() => copyPromptText(currentImage.prompt)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: midGray,
+                          fontSize: '12px',
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {copiedPrompt ? (
+                          <><Check style={{ width: '13px', height: '13px', color: '#57ad6a' }} /><span style={{ color: '#57ad6a' }}>Copied</span></>
+                        ) : (
+                          <><Copy style={{ width: '13px', height: '13px' }} /><span>Copy Prompt</span></>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textAlign: 'center', padding: '40px 0', color: midGray }}>
+                    <div
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: '#ffffff',
+                        border: `1px solid ${silver}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Layers style={{ width: '22px', height: '22px', color: midGray }} />
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: inkBlack }}>No image generated yet</p>
+                    <p style={{ fontSize: '12px', color: midGray, maxWidth: '280px', lineHeight: 1.5 }}>
+                      Enter a prompt on the left to generate an image using CallMissed.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* History */}
+              {history.length > 0 && (
+                <div
+                  style={{
+                    borderRadius: '16px',
+                    border: `1px solid ${silver}`,
+                    background: cream,
+                    padding: '16px',
+                    boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '11px',
+                      letterSpacing: '0.143em',
+                      textTransform: 'uppercase',
+                      color: midGray,
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <History style={{ width: '13px', height: '13px' }} />
+                    Session History ({history.length})
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                    {history.map((img) => (
+                      <div
+                        key={img.id}
+                        onClick={() => setCurrentImage(img)}
+                        className="group"
+                        style={{
+                          aspectRatio: '1',
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          borderRadius: '10px',
+                          border: `2px solid ${currentImage?.id === img.id ? coral : silver}`,
+                          position: 'relative',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <img src={getImageSrc(img)} alt={img.prompt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div
+                          className="opacity-0 group-hover:opacity-100"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            alignItems: 'flex-end',
+                            padding: '6px',
+                            transition: 'opacity 0.15s',
+                          }}
+                        >
+                          <p style={{ fontSize: '10px', color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {img.prompt}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Display & Gallery Column (Right) */}
-          <div className="space-y-6 lg:col-span-7">
-            {/* Main Stage */}
-            <div className="flex min-h-[460px] flex-col justify-center rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-6 relative">
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center space-y-3 py-20 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-[#0000001a] bg-white text-[#0d0d0d]">
-                    <RotateCcw className="h-6 w-6 animate-spin text-[#0d0d0d]" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-[#0d0d0d]">
-                    Rendering image...
-                  </h3>
-                  <p className="text-xs text-[#5d5d5d]">
-                    Running model: <span className="font-mono text-[#0d0d0d]">{selectedModel}</span>
-                  </p>
-                </div>
-              ) : currentImage ? (
-                <div className="flex flex-col space-y-4">
-                  {/* Image Display */}
-                  <div className="relative group overflow-hidden rounded-[10px] border border-[#0000001a] bg-white flex items-center justify-center max-h-[500px]">
-                    <img
-                      src={getImageSrc(currentImage)}
-                      alt={currentImage.prompt}
-                      className="max-h-[500px] w-auto object-contain"
-                    />
-
-                    {/* Overlay Action Buttons */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-4">
-                      <div className="text-xs text-white truncate max-w-md">
-                        {currentImage.prompt}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => setIsZoomOpen(true)}
-                          className="rounded-[8px] border border-[#0000001a] bg-white p-1.5 text-[#0d0d0d] hover:bg-[#f9f9f9] transition-colors"
-                          title="Full screen view"
-                        >
-                          <Maximize2 className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDownload(currentImage)}
-                          className="flex items-center space-x-1.5 rounded-[8px] bg-[#0d0d0d] px-3 py-1.5 text-xs font-medium text-white hover:bg-black transition-colors"
-                          title="Download image"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          <span>Download</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metadata bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] bg-white p-3 border border-[#0000001a] text-xs">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-mono text-[#0d0d0d]">
-                        {currentImage.model}
-                      </span>
-                      <span className="text-[#5d5d5d]">{currentImage.size}</span>
-                    </div>
-
-                    <button
-                      onClick={() => copyPromptText(currentImage.prompt)}
-                      className="flex items-center space-x-1 text-[#5d5d5d] hover:text-[#0d0d0d] transition-colors"
-                    >
-                      {copiedPrompt ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-[#0d0d0d]" />
-                          <span className="text-[#0d0d0d]">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copy Prompt</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center space-y-2.5 text-center py-20 text-[#8f8f8f]">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-[10px] border border-[#0000001a] bg-white text-[#5d5d5d]">
-                    <Layers className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-sm font-medium text-[#0d0d0d]">No image generated yet</h3>
-                  <p className="text-xs text-[#5d5d5d] max-w-sm">
-                    Enter a prompt to generate an image using CallMissed.
-                  </p>
-                </div>
-              )}
+          {/* Mobile: stacked layout */}
+          <div className="lg:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div
+              style={{
+                borderRadius: '16px',
+                border: `1px solid ${silver}`,
+                background: cream,
+                padding: '16px',
+                boxShadow: 'rgba(239, 227, 225, 0.3) 5px 5px 24px 0px',
+              }}
+            >
+              <label style={{ display: 'block', fontSize: '11px', letterSpacing: '0.143em', textTransform: 'uppercase', color: midGray, marginBottom: '8px' }}>
+                Prompt
+              </label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Describe the image..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  borderRadius: '8px',
+                  border: `1px solid ${silver}`,
+                  background: '#ffffff',
+                  padding: '10px 12px',
+                  fontSize: '13px',
+                  color: inkBlack,
+                  outline: 'none',
+                  resize: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                onClick={() => handleGenerate()}
+                disabled={isLoading || !prompt.trim()}
+                style={{
+                  marginTop: '12px',
+                  width: '100%',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: coral,
+                  color: '#ffffff',
+                  padding: '11px 20px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: isLoading || !prompt.trim() ? 'not-allowed' : 'pointer',
+                  opacity: isLoading || !prompt.trim() ? 0.35 : 1,
+                }}
+              >
+                {isLoading ? 'Generating...' : 'Generate Image'}
+              </button>
             </div>
 
-            {/* Session History Gallery */}
-            {history.length > 0 && (
-              <div className="rounded-[10px] border border-[#0000001a] bg-[#f9f9f9] p-4">
-                <div className="flex items-center space-x-2 text-xs font-medium uppercase tracking-wider text-[#5d5d5d] mb-3">
-                  <History className="h-3.5 w-3.5" />
-                  <span>Session History ({history.length})</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {history.map((img) => (
-                    <div
-                      key={img.id}
-                      onClick={() => setCurrentImage(img)}
-                      className={`group relative aspect-square cursor-pointer overflow-hidden rounded-[8px] border transition-all ${
-                        currentImage?.id === img.id
-                          ? 'border-[#0d0d0d]'
-                          : 'border-[#0000001a] hover:border-[#5d5d5d]'
-                      }`}
-                    >
-                      <img
-                        src={getImageSrc(img)}
-                        alt={img.prompt}
-                        className="h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity p-2 flex items-end">
-                        <p className="text-[10px] text-white truncate">{img.prompt}</p>
-                      </div>
-                    </div>
-                  ))}
+            {currentImage && (
+              <div style={{ borderRadius: '16px', border: `1px solid ${silver}`, background: cream, padding: '16px' }}>
+                <img src={getImageSrc(currentImage)} alt={currentImage.prompt} style={{ width: '100%', borderRadius: '12px' }} />
+                <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => handleDownload(currentImage)} style={{ flex: 1, borderRadius: '8px', border: 'none', background: coral, color: '#ffffff', padding: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                    Download
+                  </button>
                 </div>
               </div>
             )}
@@ -395,20 +717,47 @@ export const ImageGenerator: React.FC = () => {
         </div>
       </div>
 
-      {/* Fullscreen Zoom Modal */}
+      {/* Zoom Modal */}
       {isZoomOpen && currentImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000080] p-4">
-          <div className="relative max-h-[90vh] max-w-[90vw]">
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.5)',
+            padding: '16px',
+          }}
+        >
+          <div style={{ position: 'relative', maxHeight: '90vh', maxWidth: '90vw' }}>
             <button
               onClick={() => setIsZoomOpen(false)}
-              className="absolute -top-10 right-0 rounded-[8px] bg-white p-1.5 text-[#0d0d0d] border border-[#0000001a]"
+              style={{
+                position: 'absolute',
+                top: '-36px',
+                right: 0,
+                borderRadius: '8px',
+                border: `1px solid ${silver}`,
+                background: '#ffffff',
+                padding: '6px',
+                cursor: 'pointer',
+              }}
             >
-              <X className="h-4 w-4" />
+              <X style={{ width: '16px', height: '16px', color: inkBlack }} />
             </button>
             <img
               src={getImageSrc(currentImage)}
               alt={currentImage.prompt}
-              className="max-h-[85vh] max-w-[85vw] rounded-[10px] object-contain bg-white border border-[#0000001a]"
+              style={{
+                maxHeight: '85vh',
+                maxWidth: '85vw',
+                borderRadius: '16px',
+                objectFit: 'contain',
+                background: '#ffffff',
+                border: `1px solid ${silver}`,
+              }}
             />
           </div>
         </div>
