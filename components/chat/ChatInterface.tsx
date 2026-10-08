@@ -29,7 +29,7 @@ import {
 import { Sarvam } from '@/components/ui/svgs/sarvam';
 import { Moonshot, Deepseek } from '@/components/ui/svgs/modelIcons';
 import { Openai } from '@/components/ui/svgs/openai';
-import { Gemini } from '@/components/ui/svgs/gemini';
+import { Gemma } from '@/components/ui/svgs/gemma';
 
 const STARTER_PROMPTS = [
   'Explain quantum computing in simple terms for high schoolers.',
@@ -49,7 +49,7 @@ function getModelLogo(modelId: string) {
   if (modelId.includes('sarvam')) return <Sarvam />;
   if (modelId.includes('kimi')) return <Moonshot />;
   if (modelId.includes('gpt')) return <Openai />;
-  if (modelId.includes('gemma')) return <Gemini />;
+  if (modelId.includes('gemma')) return <Gemma />;
   if (modelId.includes('deepseek')) return <Deepseek />;
   return <Bot className="w-4 h-4 text-[#6b6b6b]" />;
 }

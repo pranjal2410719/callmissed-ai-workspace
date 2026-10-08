@@ -44,10 +44,11 @@ const DropdownMenuSubTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
     inset?: boolean;
   }
->(({ className: _cls, inset: _inset, children, ...props }, ref) => (
+>(({ inset, children, ...props }, ref) => (
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     style={{
+      paddingLeft: inset ? '28px' : '10px',
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
@@ -128,10 +129,11 @@ interface DropdownMenuItemProps
 const DropdownMenuItem = React.forwardRef<
   React.ComponentRef<typeof DropdownMenuPrimitive.Item>,
   DropdownMenuItemProps
->(({ inset: _inset, variant = 'default', style, ...props }, ref) => (
+>(({ inset, variant = 'default', style, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     style={{
+      paddingLeft: inset ? '28px' : '10px',
       display: 'flex',
       alignItems: 'center',
       gap: '8px',
@@ -234,16 +236,17 @@ const DropdownMenuLabel = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & {
     inset?: boolean;
   }
->(({ inset: _inset, ...props }, ref) => (
+>(({ inset, style, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
     style={{
-      padding: '5px 10px',
+      padding: inset ? '5px 10px 5px 28px' : '5px 10px',
       fontSize: '11px',
       letterSpacing: '0.143em',
       textTransform: 'uppercase',
       color: '#6b6b6b',
       fontWeight: 700,
+      ...style,
     }}
     {...props}
   />

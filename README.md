@@ -1,204 +1,92 @@
-# CallMissed AI Workspace
+# CallMissed AI Studio
 
-A unified, production-grade AI workspace demonstrating three core capabilities using exclusively the **CallMissed API**:
+A unified AI workspace demonstrating text chat, image generation, and real-time voice-agent interaction powered exclusively by the CallMissed API.
 
-1. **AI Text Chat** (OpenAI-compatible chat completions with multi-model and Indic language support)
-2. **AI Image Studio** (Text-to-image generation with customizable aspect ratios, model routing, and session gallery)
-3. **Real-Time Voice Agent** (Full-duplex conversational voice interaction via WebRTC Voice Session API: STT -> LLM -> TTS)
+## About
 
----
+This application is an end-to-end frontend engineering assignment built for CallMissed. It showcases multi-model conversational text chat, natural language text-to-image synthesis, and bi-directional conversational voice interaction over WebRTC.
 
-## 1. Architectural Overview
+## Features
+
+- **AI Chat**: Multi-turn conversation with model selection (Sarvam 105B, Kimi K2.5, GPT-4o, Gemma 4 31B, GPT-5.6 Luna), markdown rendering (tables, code blocks, lists), and custom system instructions.
+- **Image Studio**: Natural-language text-to-image synthesis with FLUX.2 Klein 9B, SDXL Lightning, and Phoenix 1.0, configurable aspect ratios, negative prompt parameters, fullscreen inspection, and in-session history.
+- **Voice Agent**: Low-latency bi-directional voice conversation over WebRTC powered by CallMissed Voice Session API (STT -> LLM -> TTS), with live transcription deduplication, voice personas, and spoken language selection.
+
+## Tech Stack
+
+- Next.js (App Router, Turbopack)
+- React
+- TypeScript
+- Tailwind CSS
+- Radix UI
+- LiveKit Client (WebRTC)
+- CallMissed API
+
+## Architecture
 
 ```text
-Browser Client (Next.js / React)
-   |
-   |-- HTTPS (JSON / REST)
-   v
-Next.js Route Handlers (Server-Side)
-   |
-   |-- Authenticated HTTPS (Bearer cm_...)
-   v
+Browser Client
+      ↓
+Next.js Application (App Router)
+      ↓
+Server-Side API Route Handlers
+      ↓
 CallMissed API Gateway (https://api.callmissed.com/v1)
-   |
-   |-- /chat/completions -----> LLM Inference (Sarvam 105B, Kimi K2.5, Gemma 4 31B, GPT-4o)
-   |-- /images/generations ---> Image Generation (FLUX.2 Klein, SDXL Lightning, Phoenix 1.0)
-   |-- /voice/sessions -------> LiveKit WebRTC Session Minting (JWT Token & Media Server URL)
-                                     |
-                                     v
-   Browser <==== WebRTC Media Stream =====> CallMissed Media Server (STT -> LLM -> TTS)
 ```
 
-### Security Architecture
+The `CALLMISSED_API_KEY` is strictly confined to server-side route handlers (`/api/chat`, `/api/image`, `/api/voice/session`). The client never receives or stores the API key. For voice sessions, the server authenticates with CallMissed to mint a short-lived room token and media gateway URL, which the browser uses to establish a direct WebRTC stream.
 
-- **Server-Side Credential Isolation:** The secret `CALLMISSED_API_KEY` is loaded exclusively inside server-side Route Handlers (`app/api/`) and the core CallMissed service library (`lib/callmissed/`).
-- **No Secret Leakage:** The client never receives or stores the API key. In the voice flow, the server generates a short-lived connection JWT token from `POST /v1/voice/sessions` and forwards only `wsUrl` and `token` to the client.
-- **Strict Environment Separation:** `.env*` files are excluded from Git version control in `.gitignore`.
+## CallMissed Integration
 
----
+- **Chat**: Communicates with `POST /v1/chat/completions` supporting multi-turn conversation and system prompt injection.
+- **Image Studio**: Interacts with `POST /v1/images/generations` and `GET /v1/images/history` for image synthesis and history retrieval.
+- **Voice Agent**: Calls `POST /v1/voice/sessions` to initiate a session and `GET /v1/voice/sessions/{id}/transcript` for post-call analysis, streaming real-time audio through `livekit-client`.
 
-## 2. Core Capabilities
+## Links
 
-### 1. AI Text Chat
-- **Endpoint:** `POST /v1/chat/completions`
-- **Supported Models:** `sarvam-105b` (Indic + English), `kimi-k2.5`, `gpt-4o`, `gemma-4-31b`, `gpt-5.6-luna`.
-- **Capabilities:**
-  - Multi-turn conversation history.
-  - Custom system persona instructions.
-  - Copy-to-clipboard for responses.
-  - Keyboard shortcuts (Enter to send, Shift+Enter for newline).
-  - Clear conversation management.
-  - Error recovery and retry.
+- **Live Demo**: [https://myai-tau-ten.vercel.app/](https://myai-tau-ten.vercel.app/)
+- **Repository**: [https://github.com/pranjal2410719/callmissed-ai-workspace](https://github.com/pranjal2410719/callmissed-ai-workspace)
 
-### 2. AI Image Studio
-- **Endpoint:** `POST /v1/images/generations` and `GET /v1/images/history`
-- **Supported Models:** `flux-2-klein-9b`, `sdxl-lightning`, `phoenix-1.0`, `lucid-origin`, `dreamshaper-8-lcm`.
-- **Capabilities:**
-  - Custom text prompt input with starter suggestions.
-  - Multiple aspect ratio presets (1:1 Square, 3:4 Portrait, 4:3 Landscape, 16:9 Wide).
-  - Negative prompt parameter support.
-  - Inline base64 and signed URL image rendering.
-  - Fullscreen high-resolution zoom modal.
-  - In-session generation history gallery with one-click prompt reloading.
-  - Single-click image download.
-
-### 3. Real-Time Voice Agent
-- **Endpoint:** `POST /v1/voice/sessions` and `GET /v1/voice/sessions/{id}/transcript`
-- **Audio Transport:** WebRTC via `livekit-client`
-- **Pipeline:** Speech-to-Text (`saaras:v3`) -> LLM (`kimi-k2.5` / `sarvam-105b`) -> Text-to-Speech (`bulbul:v3`)
-- **Capabilities:**
-  - Secure two-step session creation (server mints connection token, browser connects over WebRTC).
-  - Real-time full-duplex speech interaction with automatic server-side Voice Activity Detection (VAD) and interruption handling.
-  - Deterministic state machine (`IDLE`, `CONNECTING`, `LISTENING`, `PROCESSING`, `SPEAKING`, `ENDED`, `ERROR`).
-  - Interactive voice activity visualizer responding to user audio input and agent speech playback.
-  - Live transcription captions stream.
-  - Voice selection (`shubh`, `maya`, `arun`, `priya`, `aditi`), language selection (`en-IN`, `hi-IN`, `en-US`), and custom spoken greeting.
-  - Microphone mute/unmute control and clean session termination.
-  - Post-call transcript retrieval with latency and turn breakdown.
-
----
-
-## 3. Project Structure
-
-```text
-├── app/
-│   ├── layout.tsx               # Root layout and metadata
-│   ├── page.tsx                 # Main unified AI workspace
-│   ├── globals.css              # Tailwind CSS styles and theme
-│   ├── chat/
-│   │   └── page.tsx             # Direct route for Chat interface
-│   ├── image/
-│   │   └── page.tsx             # Direct route for Image Studio
-│   ├── voice/
-│   │   └── page.tsx             # Direct route for Voice Agent
-│   └── api/
-│       ├── status/
-│       │   └── route.ts         # Server-side API key configuration check
-│       ├── chat/
-│       │   └── route.ts         # Server route for chat completions
-│       ├── image/
-│       │   └── route.ts         # Server route for image generation & history
-│       └── voice/
-│           ├── session/
-│           │   └── route.ts     # Server route for minting WebRTC voice sessions
-│           └── transcript/
-│               └── route.ts     # Server route for fetching session transcripts
-├── components/
-│   ├── layout/
-│   │   └── Navbar.tsx           # Header with branding, status indicator, and tabs
-│   ├── chat/
-│   │   └── ChatInterface.tsx    # Interactive chat UI component
-│   ├── image/
-│   │   └── ImageGenerator.tsx   # Image studio UI component
-│   └── voice/
-│       └── VoiceAgent.tsx       # WebRTC voice agent UI component
-├── lib/
-│   └── callmissed/
-│       ├── client.ts            # Base HTTP client with error normalization
-│       ├── chat.ts              # Chat API integration & model catalog
-│       ├── image.ts             # Image generation API integration & presets
-│       └── voice.ts             # Voice Session API integration & configuration
-├── types/
-│   └── callmissed.ts            # TypeScript definitions for requests & responses
-├── .env.example                 # Example environment variable file
-├── package.json                 # Dependencies and build scripts
-└── tsconfig.json                # TypeScript compiler configuration
-```
-
----
-
-## 4. Environment Variables
-
-Create a `.env.local` file in the root directory:
+## Local Development
 
 ```bash
-# CallMissed API Secret Key (Required)
-# Get your API key at https://console.callmissed.com/developer/keys
-CALLMISSED_API_KEY=cm_your_actual_key_here
+# 1. Clone the repository
+git clone https://github.com/pranjal2410719/callmissed-ai-workspace.git
+cd callmissed-ai-workspace
 
-# Optional: Override base URL (default: https://api.callmissed.com/v1)
-# CALLMISSED_BASE_URL=https://api.callmissed.com/v1
+# 2. Install dependencies
+npm install
+
+# 3. Create environment configuration
+cp .env.example .env.local
+
+# 4. Add your API key in .env.local
+# CALLMISSED_API_KEY=your_key_here
+
+# 5. Start development server
+npm run dev
 ```
 
-> **Important:** Never use `NEXT_PUBLIC_CALLMISSED_API_KEY`. The key is exclusively accessed server-side.
+Open [http://localhost:3000](http://localhost:3000) to view the workspace.
 
----
+## Environment Variables
 
-## 5. Local Development Setup
+- `CALLMISSED_API_KEY`: Secret API key obtained from the CallMissed developer dashboard. Must be kept strictly server-side.
+- `CALLMISSED_BASE_URL` (optional): API base URL override (defaults to `https://api.callmissed.com/v1`).
 
-### Prerequisites
-- Node.js 18.18+ or 20+
-- npm 9+
+## Security
 
-### Installation & Run
+The CallMissed API key is stored server-side in `.env.local` and is never exposed in client bundles or public requests. All external API requests are proxied through server route handlers. `.env*` files (except `.env.example`) are ignored by Git.
 
-1. Clone the repository and install dependencies:
-   ```bash
-   npm install
-   ```
+## Developer
 
-2. Set your CallMissed API key:
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local and add your key: CALLMISSED_API_KEY=cm_...
-   ```
+Pranjal Yadav is a B.Tech CSE student at PSIT, Kanpur, and a frontend/full-stack developer focused on Next.js, React, TypeScript, and modern web applications.
 
-3. Start the local development server:
-   ```bash
-   npm run dev
-   ```
+He builds product interfaces and developer-focused software with an emphasis on clean architecture, API integration, responsive UX, and practical engineering.
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+- **GitHub**: [https://github.com/pranjal2410719](https://github.com/pranjal2410719)
+- **LinkedIn**: [https://www.linkedin.com/in/-pranjal22/](https://www.linkedin.com/in/-pranjal22/)
 
----
+## Assignment
 
-## 6. Production Build & Deployment
-
-### Build Verification
-To run the type checker, linter, and production build:
-
-```bash
-npm run build
-```
-
-To run the built application:
-```bash
-npm run start
-```
-
-### Deploying to AWS / Vercel / Cloud Hosts
-1. Push the repository to GitHub.
-2. In your hosting platform settings (e.g. AWS Amplify, Vercel, ECS, or EC2):
-   - Add the environment variable `CALLMISSED_API_KEY`.
-   - Set the build command to `npm run build`.
-   - Set the start command to `npm start`.
-3. Verify that the production deployment can reach `https://api.callmissed.com`.
-
----
-
-## 7. Design Standards & Compliance
-
-- **No Emojis:** Zero emojis are used across UI elements, labels, buttons, headings, or error messages.
-- **Consistent Semantic Icons:** Semantic icons are powered by `lucide-react`.
-- **Real CallMissed Integration:** Chat, image generation, and voice sessions interact exclusively with official CallMissed endpoints.
-- **Responsive Layout:** Optimized for mobile (375px+), tablet (768px+), and desktop (1440px+).
+This project was built as part of the Frontend Engineering Intern (Next.js) assessment for CallMissed.

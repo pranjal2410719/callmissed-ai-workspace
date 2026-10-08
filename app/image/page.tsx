@@ -23,7 +23,7 @@ export default function ImagePage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-white text-[#000000] flex flex-col font-sans">
       <Navbar activeTab="image" onTabChange={handleTabChange} isConfigured={isConfigured} />
       <main className="flex-1">
         <ImageGenerator />

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Gemini = ({ className = 'w-4 h-4' }: { className?: string }) => (
+export const Gemma = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg
     viewBox="0 0 24 24"
     fill="currentColor"
